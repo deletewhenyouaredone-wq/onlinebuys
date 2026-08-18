@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>Mika's Craft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
@@ -18,12 +18,13 @@ body{
 font-family:'Baloo 2',system-ui,sans-serif;
 background:#221a35;
 min-height:100vh;
+min-height:100dvh;
 display:flex; justify-content:center;
 color:var(--ink);
 -webkit-font-smoothing:antialiased;
 }
 #app-shell{
-width:100%; max-width:460px; min-height:100vh;
+width:100%; max-width:460px; min-height:100vh; min-height:100dvh;
 background:var(--pale);
 position:relative;
 box-shadow:0 0 60px rgba(0,0,0,0.5);
@@ -31,7 +32,7 @@ overflow-x:hidden;
 }
 @media (min-width:520px){
 body{ padding:28px 12px; }
-#app-shell{ min-height:92vh; border-radius:32px; overflow:hidden; }
+#app-shell{ min-height:92vh; min-height:92dvh; border-radius:32px; overflow:hidden; }
 }
 #app{ min-height:100%; display:flex; flex-direction:column; }
 a{ color:inherit; }
@@ -99,6 +100,7 @@ width:100%; padding:13px 16px; border-radius:16px; border:none; font-size:15px; 
 }
 .field textarea{ resize:vertical; min-height:80px; }
 .field-dark label{ color:#fff; }
+.field-dark input, .field-dark textarea{ color:var(--ink); }
 .pw-wrap{ position:relative; }
 .pw-wrap input{ padding-right:44px; }
 .pw-toggle{ position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; padding:8px; }
@@ -163,6 +165,8 @@ max-width:88%; text-align:center; z-index:200; transition:transform .25s ease; b
 /* ---------- home ---------- */
 .home-cat-row{ display:flex; gap:14px; align-items:stretch; position:relative; margin-bottom:22px; }
 .home-cat-photo{ width:118px; height:118px; cursor:pointer; }
+.cat-photo-wrap{ position:relative; display:inline-block; flex-shrink:0; }
+.cat-photo-edit{ position:absolute; bottom:-4px; right:-4px; background:#fff; border:none; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.35); color:var(--deep); }
 .bottom-nav{
 position:sticky; bottom:16px; margin:20px 20px 0; background:rgba(69,58,114,0.88); backdrop-filter:blur(6px);
 border-radius:999px; padding:13px 34px; display:flex; justify-content:space-around;
@@ -188,6 +192,10 @@ border-radius:999px; padding:13px 34px; display:flex; justify-content:space-arou
 /* ---------- checkout ---------- */
 .kv-row{ display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:7px; }
 .kv-row.total{ font-size:17px; font-weight:800; }
+/* ---------- cart ---------- */
+.checkbox{ width:24px; height:24px; border-radius:8px; border:2px solid rgba(255,255,255,0.5); display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(255,255,255,0.08); cursor:pointer; color:#fff; }
+.checkbox.checked{ background:var(--accent); border-color:var(--accent); }
+.proof-thumb{ width:100%; max-width:220px; border-radius:14px; border:3px solid rgba(255,255,255,0.3); margin-top:8px; }
 /* ---------- chat ---------- */
 .chat-scroll{ flex:1; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:10px; }
 .bubble{ max-width:78%; padding:11px 15px; border-radius:18px; font-size:14px; line-height:1.4; }
@@ -210,6 +218,7 @@ border-radius:999px; padding:13px 34px; display:flex; justify-content:space-arou
 <div id="app"></div>
 </div>
 <div id="toast"></div>
+<input type="file" id="globalFileInput" accept="image/*" style="display:none;">
 <script>
 /* ================= CONFIG ================= */
 const SUPABASE_URL = "https://sxlwfscpjyomizzucchv.supabase.co";
@@ -316,12 +325,15 @@ reader.readAsDataURL(file);
 const state = {
 session:null, profile:null, roleView:"admin",
 screen:"landing", params:{}, history:[],
-categories:[], products:[], settings:{ shop_name:"Mika's Craft", tagline:"with printing services", shipping_fee:50, fb_links:[], gcash_name:"", gcash_number:"" },
+categories:[], products:[], settings:{ shop_name:"Mika's Craft", tagline:"with printing services", shipping_fee:50, fb_links:[], gcash_name:"", gcash_number:"", pickup_address:"" },
 addresses:[], orders:[], messages:[],
 draftImages:[], // {blob, url} pending upload for product form
-buyDraft:null, // {product, selected, qty, customLink}
+buyDraft:null, // {product, selected, qty, customFiles:[{url,blob}], mode:'buy'|'cart'}
 shippingChoice:"pickup",
 loading:true, authBusy:false,
+cart:[], cartSelected:{}, checkoutItems:null,
+paymentProofDraft:null, deliveryProofDraft:{},
+fileInputTarget:null,
 };
 function isAdmin(){ return state.profile && state.profile.role === "admin"; }
 function effectiveRole(){ return isAdmin() ? state.roleView : "customer"; }
@@ -372,13 +384,23 @@ function firstName(s){ const parts=(s||"Mika's Craft").split(" "); return parts[
 function lastWord(s){ const parts=(s||"Mika's Craft").split(" "); return parts.slice(1).join(" ") || parts[0]; }
 function formatDate(d){ if(!d) return ""; try{ const dt=new Date(d+"T00:00:00"); return dt.toLocaleDateString("en-PH",{month:"short",day:"numeric",year:"numeric"}); }catch(e){ return d; } }
 function formatDateShort(iso){ try{ return new Date(iso).toLocaleDateString("en-PH",{month:"2-digit",day:"2-digit",year:"numeric"}); }catch(e){ return ""; } }
+function formatDeliveryRange(val){
+if(!val) return "To be confirmed";
+const parts = String(val).split("-").map(s=>s.trim()).filter(Boolean);
+if(parts.length>=2){
+const a=parts[0], b=parts[1];
+if(a===b) return `${a} day${a==="1"?"":"s"}`;
+return `${a} to ${b} days`;
+}
+return `${parts[0]} day${parts[0]==="1"?"":"s"}`;
+}
 /* ================= TRANSIENT UI STATE ================= */
 let formDraft = {};
 let carouselIdx = 0;
 /* ================= SCREENS ================= */
 function screenLanding(){
 return `
-<div class="deco-bg" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 32px;min-height:100vh;">
+<div class="deco-bg" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 32px;min-height:100%;">
 <span class="float" style="top:8%;right:10%;font-size:42px;">\u{1F98B}</span>
 <span class="float" style="bottom:22%;left:8%;font-size:34px;animation-delay:1.4s;">\u{1F33C}</span>
 <span class="float" style="bottom:12%;right:14%;font-size:26px;animation-delay:2.6s;">\u{1F98B}</span>
@@ -391,7 +413,7 @@ return `
 }
 function screenLogin(){
 return `
-<div class="deco-bg" style="min-height:100vh;padding:34px 26px;">
+<div class="deco-bg" style="min-height:100%;padding:34px 26px;">
 <p class="script" style="font-size:42px;color:#fff;margin:14px 0 26px;">Login</p>
 <div class="field field-dark"><label>Email address</label><input id="loginEmail" type="email" placeholder="Enter email" autocomplete="email"></div>
 <div class="field field-dark"><label>Password</label>
@@ -406,7 +428,7 @@ return `
 }
 function screenSignup(){
 return `
-<div class="deco-bg" style="min-height:100vh;padding:20px 26px 34px;">
+<div class="deco-bg" style="min-height:100%;padding:20px 26px 34px;">
 <button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
 <p class="script" style="font-size:42px;color:#fff;margin:6px 0 24px;">Sign up</p>
 <div class="field field-dark"><label>Your name</label><input id="suName" type="text" placeholder="Full name"></div>
@@ -435,7 +457,10 @@ let catsHtml = cats.map(c => `
 <div class="home-cat-row">
 <div style="flex:0 0 auto;">
 <p class="script" style="font-size:21px;color:#fff;margin:0 0 6px;">${esc(c.name)}</p>
-<div class="blob home-cat-photo" data-action="open-category" data-id="${c.id}"></div>
+<div class="cat-photo-wrap">
+<div class="blob home-cat-photo" style="${c.image_url?`background-image:url('${esc(c.image_url)}')`:""}" data-action="open-category" data-id="${c.id}"></div>
+${role==="admin"?`<button class="cat-photo-edit" data-action="pick-category-image" data-id="${c.id}" title="Change photo">${iconSvg("pencil")}</button>`:""}
+</div>
 </div>
 <div class="torn">${esc(c.description||"")}</div>
 ${role==="admin"?`<div class="admin-actions">
@@ -445,7 +470,7 @@ ${role==="admin"?`<div class="admin-actions">
 </div>`).join("");
 if(!cats.length){ catsHtml = `<p class="empty-state" style="color:#fff;">No categories yet.</p>`; }
 return `
-<div class="deco-bg" style="min-height:100vh;display:flex;flex-direction:column;">
+<div class="deco-bg" style="min-height:100%;display:flex;flex-direction:column;">
 <div style="padding:22px 22px 4px;display:flex;justify-content:space-between;align-items:flex-start;">
 <button class="icon-btn" style="width:44px;height:44px;background:rgba(255,255,255,0.28);" data-action="go-profile">${iconSvg("user")}</button>
 <div style="text-align:right;">
@@ -459,7 +484,7 @@ ${role==="admin"?`<button class="btn btn-ghost-dark btn-block" data-action="add-
 </div>
 <p class="script" style="padding:14px 22px 0;color:rgba(255,255,255,0.85);font-size:15px;">Dream big, start small, but never stop.</p>
 <div class="bottom-nav">
-<button data-action="go-purchases" style="color:#fff;">${iconSvg("cart")}</button>
+<button data-action="go-cart" style="color:#fff;">${iconSvg("cart")}</button>
 <div style="width:1px;background:rgba(255,255,255,0.35);"></div>
 <button data-action="go-inbox" style="color:#fff;">${iconSvg("mail")}</button>
 </div>
@@ -488,7 +513,7 @@ ${role==="admin"?`<div class="admin-actions">
 }).join("");
 if(!prods.length) rows = `<p class="empty-state" style="color:#fff;">No products yet in ${esc(cat.name)}.</p>`;
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
 <p class="script" style="font-size:20px;color:#fff;margin:0;">${esc(cat.name)}</p><h1 class="chunky" style="color:#fff;">SERVICE'S</h1></div>
 <div style="padding:0 20px 30px;">
@@ -500,12 +525,14 @@ ${role==="admin"?`<button class="btn btn-ghost-dark btn-block mt8" style="border
 function screenProductForm(){
 const editing = state.params.productId ? state.products.find(p=>p.id===state.params.productId) : null;
 if(!formDraft.__init){
+const parts = editing && editing.delivery_estimate ? String(editing.delivery_estimate).split("-").map(s=>s.trim()) : ["",""];
 formDraft = {
 __init:true,
 images: editing ? (editing.images||[]).map(url=>({url})) : [],
 categoryId: editing ? editing.category_id : state.params.categoryId,
 optionType: editing ? (editing.option_type||"size") : "size",
 optionValues: editing && editing.option_values && editing.option_values.length ? editing.option_values.slice() : [""],
+deliveryMin: parts[0]||"", deliveryMax: parts[1]||parts[0]||"",
 };
 }
 const imagesHtml = formDraft.images.map((img,i)=>`<div class="thumb-wrap"><img src="${esc(img.url)}"><button class="thumb-remove" data-action="remove-image" data-idx="${i}">${iconSvg("x")}</button></div>`).join("");
@@ -517,17 +544,23 @@ const optValuesHtml = formDraft.optionValues.map((v,i)=>`
 <button class="icon-btn-dark" style="border-radius:12px;width:42px;color:#fff;border:none;" data-action="remove-option-value" data-idx="${i}">${iconSvg("x")}</button>
 </div>`).join("");
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">${editing?"Edit product":"Add product"}</h1></div>
 <div style="padding:0 20px 40px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Photos (up to 10)</div>
 <div id="imagesRow" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">${imagesHtml}${addImgBtn}</div>
-<input type="file" id="imageFileInput" accept="image/*" multiple style="display:none;">
 <div class="field field-dark"><label>Product name</label><input id="pfName" value="${editing?esc(editing.name):""}" placeholder="Enter text"></div>
 <div class="field field-dark"><label>Price (\u20b1)</label><input id="pfPrice" type="number" step="0.01" value="${editing?editing.price:""}" placeholder="Enter price"></div>
 <div class="field field-dark"><label>Description</label><textarea id="pfDesc" placeholder="Enter text">${editing?esc(editing.description||""):""}</textarea></div>
 <div class="field field-dark"><label>Category</label><div class="pill-wrap">${catPills || '<span class="hint">Add a category first</span>'}</div></div>
-<div class="field field-dark"><label>Estimated delivery</label><input id="pfDelivery" type="date" value="${editing?esc(editing.delivery_estimate||""):""}"></div>
+<div class="field field-dark"><label>Estimated delivery (days)</label>
+<div style="display:flex;gap:10px;align-items:center;">
+<input id="pfDeliveryMin" type="number" min="1" placeholder="Min" value="${esc(formDraft.deliveryMin)}" style="flex:1;">
+<span style="color:#fff;">to</span>
+<input id="pfDeliveryMax" type="number" min="1" placeholder="Max" value="${esc(formDraft.deliveryMax)}" style="flex:1;">
+<span style="color:#fff;white-space:nowrap;">days</span>
+</div>
+</div>
 <div class="field field-dark"><label>This product has...</label>
 <div class="pill-wrap">
 <button class="pill${formDraft.optionType==='size'?' active':''}" data-action="pick-option-type" data-type="size">Size</button>
@@ -552,7 +585,7 @@ const dots = imgs.length>1 ? `<div class="carousel-dots">${imgs.map((_,i)=>`<spa
 const arrows = imgs.length>1 ? `<button class="carousel-arrow" style="left:8px;" data-action="carousel-prev">${iconSvg("back")}</button><button class="carousel-arrow" style="right:8px;transform:translateY(-50%) rotate(180deg);" data-action="carousel-next">${iconSvg("back")}</button>` : "";
 const fbLinks = (state.settings.fb_links||[]).filter(Boolean).map(l=>`<a class="link-line" href="${esc(l)}" target="_blank" rel="noopener">${esc(l)}</a>`).join("");
 return `
-<div class="flat-bg" style="min-height:100vh;display:flex;flex-direction:column;">
+<div class="flat-bg" style="min-height:100%;display:flex;flex-direction:column;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
 <p class="script" style="font-size:16px;color:#fff;margin:0;">${cat?esc(cat.name).toUpperCase():""}</p><h1 class="chunky" style="font-size:24px;color:#fff;">SERVICE'S</h1></div>
 <div style="padding:0 20px;flex:1;">
@@ -562,11 +595,15 @@ return `
 ${arrows}${dots}
 <div class="price-tag">${peso(p.price)}</div>
 </div>
-<p style="opacity:0.9;font-size:14px;line-height:1.6;margin-top:26px;">${esc(p.description||"")}</p>
+<p style="opacity:0.7;font-size:12.5px;margin-top:22px;">Estimated delivery: <strong style="opacity:1;">${formatDeliveryRange(p.delivery_estimate)}</strong></p>
+<p style="opacity:0.9;font-size:14px;line-height:1.6;margin-top:8px;">${esc(p.description||"")}</p>
 </div>
 <div class="sticky-buy">
 <div style="font-size:9.5px;opacity:0.8;line-height:1.5;"><div style="font-weight:700;">FOR DM'S, MESSAGE US:</div>${fbLinks || '<span style="opacity:0.6;">No contact link set yet</span>'}</div>
-<button class="btn btn-primary" style="flex-shrink:0;" data-action="open-buy" data-id="${p.id}">${iconSvg("cart")} Buy</button>
+<div style="display:flex;gap:8px;flex-shrink:0;">
+<button class="btn btn-ghost-dark btn-sm" data-action="open-cart-add" data-id="${p.id}" title="Add to cart">${iconSvg("cart")}</button>
+<button class="btn btn-primary" data-action="open-buy" data-id="${p.id}">${iconSvg("cart")} Buy</button>
+</div>
 </div>
 </div>`;
 }
@@ -576,27 +613,31 @@ const p = state.buyDraft.product;
 const img = (p.images && p.images[0]) || "";
 const opts = p.option_values || [];
 const pills = opts.map(v=>`<button class="pill pill-dark${state.buyDraft.selected===v?' active':''}" data-action="pick-buy-option" data-value="${esc(v)}">${esc(v)}</button>`).join("");
+const files = state.buyDraft.customFiles || [];
+const filesHtml = files.map((f,i)=>`<div class="thumb-wrap"><img src="${esc(f.url)}"><button class="thumb-remove" data-action="remove-custom-file" data-idx="${i}">${iconSvg("x")}</button></div>`).join("");
+const addFileBtn = files.length < 5 ? `<div class="thumb-add" data-action="pick-custom-files">${iconSvg("plus")}</div>` : "";
+const isCart = state.buyDraft.mode === "cart";
 return `
 <div class="modal-overlay" data-action="close-modal-bg">
-<div class="modal-sheet" onclick="event.stopPropagation()">
+<div class="modal-sheet">
 <button class="modal-close" style="color:#fff;" data-action="close-modal">${iconSvg("x")}</button>
 <div style="display:flex;gap:14px;margin-bottom:16px;">
 <div class="blob" style="width:84px;height:84px;flex-shrink:0;${img?`background-image:url('${esc(img)}')`:""}"></div>
 <div><div style="font-weight:700;">${esc(p.name)}</div><div style="font-size:20px;font-weight:800;">${peso(p.price)}</div></div>
 </div>
 <div class="divider"></div>
-<div style="font-size:13px;opacity:0.85;margin-bottom:14px;">Estimated delivery: <strong style="opacity:1;">${p.delivery_estimate?formatDate(p.delivery_estimate):"To be confirmed"}</strong></div>
+<div style="font-size:13px;opacity:0.85;margin-bottom:14px;">Estimated delivery: <strong style="opacity:1;">${formatDeliveryRange(p.delivery_estimate)}</strong></div>
 ${opts.length?`<div class="mb16"><div style="font-size:13px;font-weight:700;margin-bottom:8px;text-transform:capitalize;">${p.option_type==='size'?'Size':'Variation'}</div><div class="pill-wrap">${pills}</div></div>`:""}
 <div class="mb8">
-<div style="font-size:13px;margin-bottom:8px;">Add link of documents, photos, or want customize item</div>
-${state.buyDraft.showLinkInput ? `<input id="customLinkInput" value="${esc(state.buyDraft.customLink||"")}" placeholder="Paste a link..." style="width:100%;padding:12px;border-radius:999px;border:none;">` : `<button class="btn btn-ghost-dark btn-block" data-action="toggle-link-input">${iconSvg("plus")}</button>`}
+<div style="font-size:13px;margin-bottom:8px;">Add photos of documents or item to customize (optional)</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;">${filesHtml}${addFileBtn}</div>
 <p class="hint" style="text-align:right;">${esc(p.custom_note||"")}</p>
 </div>
 <div class="row-between mt16 mb16">
 <span style="font-weight:700;">Quantity</span>
 <div class="stepper"><button data-action="qty-dec">${iconSvg("minus")}</button><span>${state.buyDraft.qty}</span><button data-action="qty-inc">${iconSvg("plus")}</button></div>
 </div>
-<button class="btn btn-primary btn-block" data-action="confirm-buy">${iconSvg("cart")} Buy</button>
+<button class="btn btn-primary btn-block" data-action="${isCart?'confirm-add-cart':'confirm-buy'}">${iconSvg("cart")} ${isCart?'Add to Cart':'Buy'}</button>
 </div>
 </div>`;
 }
@@ -605,7 +646,7 @@ if(!state.categoryModal) return "";
 const c = state.categoryModal;
 return `
 <div class="modal-overlay" data-action="close-modal-bg">
-<div class="modal-sheet" onclick="event.stopPropagation()">
+<div class="modal-sheet">
 <button class="modal-close" style="color:#fff;" data-action="close-category-modal">${iconSvg("x")}</button>
 <h2 class="chunky" style="margin-top:0;">${c.id?"Edit category":"Add category"}</h2>
 <div class="field field-dark"><label>Category name</label><input id="catName" value="${esc(c.name||"")}" placeholder="e.g. Print, Keychain"></div>
@@ -614,25 +655,64 @@ return `
 </div>
 </div>`;
 }
+function screenCart(){
+const items = state.cart.map(ci => ({ ci, product: state.products.find(p=>p.id===ci.product_id) })).filter(x=>x.product);
+const rows = items.map(({ci,product})=>{
+const img = (product.images&&product.images[0])||"";
+const checked = !!state.cartSelected[ci.id];
+return `
+<div class="panel" style="display:flex;gap:12px;align-items:flex-start;">
+<div class="checkbox${checked?' checked':''}" data-action="toggle-cart-select" data-id="${ci.id}">${checked?iconSvg("plus"):""}</div>
+<div class="blob" style="width:64px;height:64px;flex-shrink:0;${img?`background-image:url('${esc(img)}')`:""}"></div>
+<div style="flex:1;">
+<div style="font-weight:700;">${esc(product.name)}</div>
+${ci.variation?`<span class="badge mt8">${esc(ci.variation)}</span>`:""}
+<div class="row-between mt8">
+<span style="font-weight:700;">${peso(product.price)}</span>
+<div class="stepper"><button data-action="cart-qty-dec" data-id="${ci.id}">${iconSvg("minus")}</button><span>${ci.quantity}</span><button data-action="cart-qty-inc" data-id="${ci.id}">${iconSvg("plus")}</button></div>
+</div>
+</div>
+<button class="icon-btn" data-action="remove-cart-item" data-id="${ci.id}">${iconSvg("trash")}</button>
+</div>`;
+}).join("");
+const selectedItems = items.filter(({ci})=> state.cartSelected[ci.id]);
+const total = selectedItems.reduce((sum,{ci,product})=> sum + product.price*ci.quantity, 0);
+const allSelected = items.length>0 && items.every(({ci})=>state.cartSelected[ci.id]);
+return `
+<div class="flat-bg" style="min-height:100%;display:flex;flex-direction:column;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">My Cart</h1></div>
+<div style="padding:0 20px 20px;flex:1;">
+${items.length ? `<button class="pill pill-dark mb16" data-action="cart-select-all">${allSelected ? "Deselect All" : "Select All"}</button>` : ""}
+${rows || `<p class="empty-state" style="color:#fff;">Your cart is empty.</p>`}
+</div>
+${items.length ? `<div class="sticky-buy">
+<div><div style="font-size:12px;opacity:0.8;">${selectedItems.length} item(s) selected</div><div style="font-weight:800;font-size:18px;">${peso(total)}</div></div>
+<button class="btn btn-primary" ${selectedItems.length?"":"disabled"} data-action="checkout-cart">${iconSvg("cart")} Buy Selected</button>
+</div>` : ""}
+</div>`;
+}
 function screenCheckout(){
-const draft = state.buyDraft;
-if(!draft) return `<div class="flat-bg" style="padding:40px;color:#fff;">Nothing to checkout.<div class="mt16"><button class="btn btn-ghost" data-action="back">Go back</button></div></div>`;
-const p = draft.product;
-const img = (p.images && p.images[0]) || "";
-const merch = p.price * draft.qty;
+const items = state.checkoutItems;
+if(!items || !items.length) return `<div class="flat-bg" style="padding:40px;color:#fff;">Nothing to checkout.<div class="mt16"><button class="btn btn-ghost" data-action="back">Go back</button></div></div>`;
+const merch = items.reduce((s,it)=> s + it.product.price*it.qty, 0);
 const shipFee = state.shippingChoice === "ship" ? Number(state.settings.shipping_fee||0) : 0;
 const total = merch + shipFee;
 const addr = state.addresses.find(a=>a.is_default) || state.addresses[0];
+const itemsHtml = items.map(it=>{
+const img = (it.product.images&&it.product.images[0])||"";
+return `<div class="panel" style="display:flex;gap:14px;">
+<div class="blob" style="width:64px;height:64px;flex-shrink:0;${img?`background-image:url('${esc(img)}')`:""}"></div>
+<div><div style="font-weight:700;">${esc(it.product.name)}</div>${it.selected?`<span class="badge">${esc(it.selected)}</span>`:""}
+<div style="font-size:16px;font-weight:800;margin-top:4px;">${peso(it.product.price)} <span style="font-size:12px;font-weight:400;opacity:0.7;">x${it.qty}</span></div></div>
+</div>`;
+}).join("");
+const readyText = items.length===1 ? formatDeliveryRange(items[0].product.delivery_estimate) : "Varies by item";
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Checkout</h1></div>
 <div style="padding:0 20px 30px;">
-<div class="panel" style="display:flex;gap:14px;">
-<div class="blob" style="width:76px;height:76px;flex-shrink:0;${img?`background-image:url('${esc(img)}')`:""}"></div>
-<div><div style="font-weight:700;">${esc(p.name)}</div>${draft.selected?`<span class="badge">${esc(draft.selected)}</span>`:""}
-<div style="font-size:19px;font-weight:800;margin-top:4px;">${peso(p.price)} <span style="font-size:12px;font-weight:400;opacity:0.7;">x${draft.qty}</span></div></div>
-</div>
-<div class="panel">Estimated delivery \u2014 ${p.delivery_estimate?formatDate(p.delivery_estimate):"---"}</div>
+${itemsHtml}
+<div class="panel">Estimated delivery \u2014 ${readyText}</div>
 <div class="panel">
 <div style="font-weight:700;margin-bottom:10px;">Shipping Option</div>
 <div class="pill-wrap">
@@ -651,10 +731,13 @@ return `
 <div class="kv-row"><span>GCash e-wallet</span><span>\u2713</span></div>
 <p class="hint" style="text-align:right;">Notes: Always payment first</p>
 </div>
-<button class="btn btn-ghost-dark btn-block mb16" style="border-style:dashed;" data-action="go-address-select">${addr ? `\u{1F4CD} ${esc(addr.full_name)} \u2014 ${esc(addr.city||"")}` : "+ Add Address"}</button>
+${state.shippingChoice==='pickup' ? `<div class="panel">
+<div style="font-weight:700;margin-bottom:6px;">Pick-up Address</div>
+<div style="font-size:13.5px;opacity:0.9;">${esc(state.settings.pickup_address||"") || '<span style="opacity:0.6;">Admin hasn\u2019t set a pick-up address yet.</span>'}</div>
+</div>` : `<button class="btn btn-ghost-dark btn-block mb16" style="border-style:dashed;" data-action="go-address-select">${addr ? `\u{1F4CD} ${esc(addr.full_name)} \u2014 ${esc(addr.city||"")}` : "+ Add Address"}</button>`}
 <div class="btn-row">
 <button class="btn btn-ghost-dark" data-action="cancel-checkout">Cancel</button>
-<button class="btn btn-primary" ${!addr?"disabled":""} data-action="go-payment">Payment</button>
+<button class="btn btn-primary" ${(state.shippingChoice==='ship' && !addr)?"disabled":""} data-action="go-payment">Payment</button>
 </div>
 </div>
 </div>`;
@@ -662,94 +745,122 @@ return `
 function screenAddressList(){
 const selectable = state.params.selectable;
 let rows = state.addresses.map(a=>`
-<div class="panel" style="cursor:${selectable?'pointer':'default'};" ${selectable?`data-action="select-address" data-id="${a.id}"`:""}>
-<div style="font-weight:800;">${esc(a.full_name)} <span style="font-weight:400;opacity:0.7;font-size:13px;">| ${esc(a.phone)}</span></div>
+<div class="panel" style="position:relative;${selectable?'cursor:pointer;':''}" ${selectable?`data-action="select-address" data-id="${a.id}"`:""}>
+<div style="font-weight:800;padding-right:80px;">${esc(a.full_name)} <span style="font-weight:400;opacity:0.7;font-size:13px;">| ${esc(a.phone)}</span></div>
 <div style="font-size:13px;opacity:0.85;margin-top:4px;">${esc(a.street||"")}</div>
 <div style="font-size:13px;opacity:0.85;">${esc(a.barangay||"")}, ${esc(a.city||"")}, ${esc(a.province||"")}</div>
 <div style="font-size:13px;opacity:0.85;">${esc(a.postal_code||"")}</div>
 ${a.is_default?`<span class="badge mt8" style="background:transparent;border:1px solid #fff;">DEFAULT</span>`:""}
+<div class="admin-actions" style="top:14px;right:14px;">
+<button class="icon-btn" data-action="edit-address" data-id="${a.id}">${iconSvg("pencil")}</button>
+<button class="icon-btn" data-action="delete-address" data-id="${a.id}">${iconSvg("trash")}</button>
+</div>
 </div>`).join("");
 if(!state.addresses.length) rows = `<p class="empty-state" style="color:#fff;">No saved addresses yet.</p>`;
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">My Address</h1></div>
 <div style="padding:0 20px 30px;">${rows}<button class="btn btn-ghost-dark btn-block" style="border-style:dashed;" data-action="go-address-add">${iconSvg("plus")} Add Address</button></div>
 </div>`;
 }
 function screenAddressForm(){
+const editId = state.params.editId;
+const editing = editId ? state.addresses.find(a=>a.id===editId) : null;
 const noneYet = state.addresses.length === 0;
+const isDefaultInitial = editing ? editing.is_default : noneYet;
 return `
-<div class="flat-bg" style="min-height:100vh;">
-<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Set up Address</h1></div>
+<div class="flat-bg" style="min-height:100%;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">${editing?"Edit Address":"Set up Address"}</h1></div>
 <div style="padding:0 20px 30px;">
 <label class="toggle mb16"><span style="font-size:13px;font-weight:700;">Set as default</span>
-<span class="toggle-track${noneYet?' on':''}" id="defaultToggle" data-action="toggle-default"><span class="toggle-thumb"></span></span>
+<span class="toggle-track${isDefaultInitial?' on':''}" id="defaultToggle" data-action="toggle-default"><span class="toggle-thumb"></span></span>
 </label>
 <div class="panel">
-<div class="field field-dark"><label>Full Name</label><input id="adName" placeholder="Add Name"></div>
-<div class="field field-dark"><label>Phone Number</label><input id="adPhone" placeholder="Add Number" type="tel"></div>
+<div class="field field-dark"><label>Full Name</label><input id="adName" placeholder="Add Name" value="${editing?esc(editing.full_name):''}"></div>
+<div class="field field-dark"><label>Phone Number</label><input id="adPhone" placeholder="Add Number" type="tel" value="${editing?esc(editing.phone):''}"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-<div class="field field-dark"><input id="adRegion" placeholder="Add Region"></div>
-<div class="field field-dark"><input id="adCity" placeholder="Add City"></div>
-<div class="field field-dark"><input id="adProvince" placeholder="Add Province"></div>
-<div class="field field-dark"><input id="adBarangay" placeholder="Add Barangay"></div>
+<div class="field field-dark"><input id="adRegion" placeholder="Add Region" value="${editing?esc(editing.region||''):''}"></div>
+<div class="field field-dark"><input id="adCity" placeholder="Add City" value="${editing?esc(editing.city||''):''}"></div>
+<div class="field field-dark"><input id="adProvince" placeholder="Add Province" value="${editing?esc(editing.province||''):''}"></div>
+<div class="field field-dark"><input id="adBarangay" placeholder="Add Barangay" value="${editing?esc(editing.barangay||''):''}"></div>
 </div>
-<div class="field field-dark"><label>Postal Code</label><input id="adPostal" placeholder="Add Postal Code"></div>
-<div class="field field-dark" style="margin-bottom:0;"><label>Street Name, house number</label><input id="adStreet" placeholder="Add Street Name, House Number"></div>
+<div class="field field-dark"><label>Postal Code</label><input id="adPostal" placeholder="Add Postal Code" value="${editing?esc(editing.postal_code||''):''}"></div>
+<div class="field field-dark" style="margin-bottom:0;"><label>Street Name, house number</label><input id="adStreet" placeholder="Add Street Name, House Number" value="${editing?esc(editing.street||''):''}"></div>
 </div>
 <div class="btn-row mt16">
 <button class="btn btn-ghost-dark" data-action="back">Cancel</button>
-<button class="btn btn-primary" data-action="save-address">Submit</button>
+<button class="btn btn-primary" data-action="save-address" data-editing="${editId||''}">${editing?'Save changes':'Submit'}</button>
 </div>
 </div>
 </div>`;
 }
 function screenPayment(){
-const draft = state.buyDraft;
-if(!draft) return `<div class="flat-bg" style="padding:40px;color:#fff;">Nothing to pay.</div>`;
-const merch = draft.product.price * draft.qty;
+const items = state.checkoutItems;
+if(!items || !items.length) return `<div class="flat-bg" style="padding:40px;color:#fff;">Nothing to pay.</div>`;
+const merch = items.reduce((s,it)=> s + it.product.price*it.qty, 0);
 const shipFee = state.shippingChoice==="ship" ? Number(state.settings.shipping_fee||0) : 0;
 const total = merch + shipFee;
 const hasGcash = state.settings.gcash_number || state.settings.gcash_name;
+const proof = state.paymentProofDraft;
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Payment</h1></div>
 <div style="padding:0 20px 30px;">
-<p style="opacity:0.85;font-size:13px;margin-bottom:20px;">Please pay the total amount of <strong>${peso(total)}</strong> first to check out your item, thank you.</p>
+<p style="opacity:0.85;font-size:13px;margin-bottom:20px;">Please pay the total amount of <strong>${peso(total)}</strong> first, then upload your payment screenshot below to check out your item, thank you.</p>
 <div class="panel center-text" style="padding:26px;">
-${hasGcash ? `<div style="font-weight:800;font-size:18px;">${esc(state.settings.gcash_name||"")}</div><div style="font-size:15px;margin-top:4px;">${esc(state.settings.gcash_number||"")}</div><p class="hint" style="margin-top:10px;">Scan the shop's GCash QR or send to this number, then tap Pay.</p>` : `<p style="opacity:0.7;font-size:13px;">Admin hasn't added GCash details yet.</p>`}
+${hasGcash ? `<div style="font-weight:800;font-size:18px;">${esc(state.settings.gcash_name||"")}</div><div style="font-size:15px;margin-top:4px;">${esc(state.settings.gcash_number||"")}</div><p class="hint" style="margin-top:10px;">Scan the shop's GCash QR or send to this number.</p>` : `<p style="opacity:0.7;font-size:13px;">Admin hasn't added GCash details yet.</p>`}
+</div>
+<div class="panel center-text">
+<div style="font-weight:700;margin-bottom:10px;">Upload proof of payment</div>
+${proof ? `<img class="proof-thumb" src="${esc(proof.url)}"><div class="mt12"><button class="btn btn-ghost-dark btn-sm" data-action="pick-payment-proof">Change photo</button></div>` : `<button class="btn btn-ghost-dark btn-block" data-action="pick-payment-proof">${iconSvg("plus")} Upload screenshot</button>`}
 </div>
 <div class="btn-row mt20">
 <button class="btn btn-ghost-dark" data-action="back">Cancel</button>
-<button class="btn btn-primary" data-action="do-pay">Pay</button>
+<button class="btn btn-primary" ${proof?"":"disabled"} data-action="do-pay">Pay</button>
 </div>
 </div>
 </div>`;
 }
 function screenPurchases(){
 const role = effectiveRole();
-let rows = state.orders.slice().reverse().map(o=>`
-<div class="panel" style="display:flex;gap:12px;">
+let rows = state.orders.slice().reverse().map(o=>{
+const proofDraft = state.deliveryProofDraft[o.id];
+const canDeliver = o.status === "To Deliver";
+return `
+<div class="panel">
+<div style="display:flex;gap:12px;">
 <div class="blob" style="width:62px;height:62px;flex-shrink:0;${o.product_image?`background-image:url('${esc(o.product_image)}')`:""}"></div>
 <div style="flex:1;">
 <div style="font-weight:700;">${esc(o.product_name)}</div>
 <div style="font-size:12px;opacity:0.7;">${esc(state.settings.shop_name)} \u00b7 ${o.quantity}x</div>
 <div class="row-between mt8">
 <span style="font-size:13px;">Total: ${peso(o.total)}</span>
-${role==="admin" ? `<button class="pill pill-dark btn-sm" data-action="toggle-order-status" data-id="${o.id}">${esc(o.status)}</button>` : `<span style="font-size:12px;font-weight:700;">${esc(o.status)}</span>`}
+<span class="pill pill-dark btn-sm" style="${o.status==='Cancelled'?'background:var(--danger);':''}">${esc(o.status)}</span>
 </div>
 </div>
-</div>`).join("");
+</div>
+${role==="admin" ? `
+<div class="divider"></div>
+${o.payment_proof_url ? `<a href="${esc(o.payment_proof_url)}" target="_blank" rel="noopener" style="font-size:12px;color:#d8c6f2;">View payment proof \u2197</a>` : `<span style="font-size:12px;opacity:0.6;">No payment proof uploaded</span>`}
+${o.status!=="Cancelled" && o.status!=="Delivered" ? `
+<div class="mt12">
+${canDeliver ? (proofDraft ? `<img class="proof-thumb" src="${esc(proofDraft.url)}" style="max-width:120px;"><div class="btn-row mt8"><button class="btn btn-ghost-dark btn-sm" data-action="pick-delivery-proof" data-id="${o.id}">Change photo</button><button class="btn btn-primary btn-sm" data-action="mark-delivered" data-id="${o.id}">Mark Delivered</button></div>` : `<button class="btn btn-ghost-dark btn-sm" data-action="pick-delivery-proof" data-id="${o.id}">${iconSvg("plus")} Upload proof to mark Delivered</button>`) : ""}
+<div class="btn-row mt8"><button class="btn btn-danger btn-sm" data-action="cancel-order" data-id="${o.id}">Cancel Order</button></div>
+</div>` : (o.status==="Delivered" ? `<div class="mt8"><button class="pill pill-dark btn-sm" data-action="toggle-order-status" data-id="${o.id}">Revert to To Deliver</button></div>` : "")}
+${o.delivery_proof_url ? `<div class="mt8"><a href="${esc(o.delivery_proof_url)}" target="_blank" rel="noopener" style="font-size:12px;color:#d8c6f2;">View delivery proof \u2197</a></div>` : ""}
+` : ""}
+</div>`;
+}).join("");
 if(!state.orders.length) rows = `<p class="empty-state" style="color:#fff;">No purchases yet.</p>`;
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">My Purchases</h1></div>
 <div style="padding:0 20px 30px;"><div class="badge center-text" style="display:block;padding:10px 0;font-size:13px;margin-bottom:16px;">HISTORY</div>${rows}</div>
 </div>`;
 }
 function screenProfile(){
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">My Profile</h1></div>
 <div class="center-text mb20"><div style="width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,0.2);display:inline-flex;align-items:center;justify-content:center;">${iconSvg("user")}</div></div>
 <div style="padding:0 20px 30px;">
@@ -761,6 +872,8 @@ return `
 <div id="nameEditWrap"></div>
 <div class="divider"></div>
 <div class="mb12">Email: ${esc(state.profile?.email||"")}</div>
+<div class="divider"></div>
+<div class="row-between" style="cursor:pointer;" data-action="go-purchases"><span>My Purchases</span>${iconSvg("chevron")}</div>
 <div class="divider"></div>
 <div class="row-between" style="cursor:pointer;" data-action="go-address-plain"><span>My Address</span>${iconSvg("chevron")}</div>
 </div>
@@ -778,7 +891,7 @@ ${isAdmin() ? `
 function screenAdminSettings(){
 const s = state.settings;
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Shop Settings</h1></div>
 <div style="padding:0 20px 30px;">
 <div class="field field-dark"><label>Shop name</label><input id="asName" value="${esc(s.shop_name||"")}"></div>
@@ -786,6 +899,7 @@ return `
 <div class="field field-dark"><label>GCash account name</label><input id="asGcashName" value="${esc(s.gcash_name||"")}" placeholder="e.g. Juan Dela Cruz"></div>
 <div class="field field-dark"><label>GCash number</label><input id="asGcashNumber" value="${esc(s.gcash_number||"")}" placeholder="09xx xxx xxxx"></div>
 <div class="field field-dark"><label>Shipping fee (\u20b1)</label><input id="asShipFee" type="number" step="0.01" value="${s.shipping_fee||0}"></div>
+<div class="field field-dark"><label>Pick-up address</label><textarea id="asPickupAddr" placeholder="Full address customers will see for Self Pick Up orders">${esc(s.pickup_address||"")}</textarea></div>
 <div class="field field-dark"><label>Facebook Messenger link 1</label><input id="asFb1" value="${esc((s.fb_links||[])[0]||"")}"></div>
 <div class="field field-dark"><label>Facebook Messenger link 2</label><input id="asFb2" value="${esc((s.fb_links||[])[1]||"")}"></div>
 <button class="btn btn-primary btn-block mt8" data-action="save-settings">Save settings</button>
@@ -795,7 +909,7 @@ return `
 function screenInbox(){
 const last = state.messages[state.messages.length-1];
 return `
-<div class="flat-bg" style="min-height:100vh;">
+<div class="flat-bg" style="min-height:100%;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">HELLO!</h1><p class="sub" style="color:rgba(255,255,255,0.75);">Message inbox</p></div>
 <div style="padding:0 20px 30px;">
 ${last ? `<div class="msg-row" data-action="go-chat"><div class="avatar">${iconSvg("user")}</div>
@@ -808,7 +922,7 @@ ${last ? `<div class="msg-row" data-action="go-chat"><div class="avatar">${iconS
 function screenChat(){
 const bubbles = state.messages.map(m=>`<div class="bubble ${m.sender==='shop'?'shop':'me'}">${esc(m.message)}</div>`).join("");
 return `
-<div class="flat-bg" style="min-height:100vh;display:flex;flex-direction:column;">
+<div class="flat-bg" style="min-height:100%;display:flex;flex-direction:column;">
 <div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
 <h1 class="chunky" style="color:#fff;font-size:24px;">${esc(state.settings.shop_name)}</h1><p class="sub" style="color:rgba(255,255,255,0.75);">${esc(state.settings.tagline||"")}</p></div>
 <div class="chat-scroll" id="chatScroll">${bubbles || '<p class="empty-state" style="color:#fff;">Say hello!</p>'}</div>
@@ -824,6 +938,7 @@ case "home": return screenHome();
 case "category": return screenCategory();
 case "productForm": return screenProductForm();
 case "productDetail": return screenProductDetail();
+case "cart": return screenCart();
 case "checkout": return screenCheckout();
 case "addressList": return screenAddressList();
 case "addressForm": return screenAddressForm();
@@ -839,7 +954,7 @@ default: return "<div></div>";
 function render(){
 const app = document.getElementById("app");
 if(state.loading){
-app.innerHTML = `<div class="flat-bg" style="min-height:100vh;display:flex;align-items:center;justify-content:center;"><div class="spinner"></div></div>`;
+app.innerHTML = `<div class="flat-bg" style="min-height:100%;display:flex;align-items:center;justify-content:center;"><div class="spinner"></div></div>`;
 return;
 }
 app.innerHTML = renderScreen() + (state.showBuyModal ? buyModalHtml() : "") + (state.categoryModal ? categoryModalHtml() : "");
@@ -884,8 +999,58 @@ formDraft.images.push({ url: URL.createObjectURL(blob), blob });
 }catch(e){ toast("Could not process an image", true); }
 }
 refreshImagesUI();
-const inp = document.getElementById("imageFileInput");
-if(inp) inp.value = "";
+}
+async function handleCategoryImage(catId, file){
+if(!file) return;
+try{
+const blob = await compressImage(file, 800, 0.85);
+const path = `categories/${catId}-${Date.now()}.jpg`;
+const url = await sb.upload(path, blob);
+const rows = await sb.update("categories", `id=eq.${catId}`, { image_url:url });
+state.categories = state.categories.map(c=>c.id===catId?rows[0]:c);
+render();
+toast("Category photo updated!");
+}catch(err){ toast(err.message || "Could not update photo", true); }
+}
+async function handleCustomFiles(files){
+if(!state.buyDraft) return;
+state.buyDraft.customFiles = state.buyDraft.customFiles || [];
+const remaining = 5 - state.buyDraft.customFiles.length;
+const toProcess = files.slice(0, Math.max(0,remaining));
+for(const file of toProcess){
+try{
+const blob = await compressImage(file);
+state.buyDraft.customFiles.push({ url: URL.createObjectURL(blob), blob });
+}catch(e){ toast("Could not process a file", true); }
+}
+render();
+}
+async function handlePaymentProofFile(file){
+if(!file) return;
+try{
+const blob = await compressImage(file, 1000, 0.85);
+state.paymentProofDraft = { url: URL.createObjectURL(blob), blob };
+render();
+}catch(e){ toast("Could not process image", true); }
+}
+async function handleDeliveryProofFile(orderId, file){
+if(!file) return;
+try{
+const blob = await compressImage(file, 1000, 0.85);
+state.deliveryProofDraft[orderId] = { url: URL.createObjectURL(blob), blob };
+render();
+}catch(e){ toast("Could not process image", true); }
+}
+async function uploadCustomFiles(files){
+const result = [];
+for(const f of (files||[])){
+if(f.blob){
+const path = `customs/${state.session.user.id}/${Date.now()}-${uid()}.jpg`;
+const url = await sb.upload(path, f.blob);
+result.push({ url });
+} else { result.push({ url: f.url }); }
+}
+return result;
 }
 /* ================= DATA LOADERS ================= */
 async function loadProfile(){
@@ -906,6 +1071,7 @@ state.addresses = await sb.select("addresses", `user_id=eq.${state.session.user.
 const orderFilter = isAdmin() ? "select=*&order=created_at.asc" : `user_id=eq.${state.session.user.id}&select=*&order=created_at.asc`;
 state.orders = await sb.select("orders", orderFilter);
 state.messages = await sb.select("messages", `user_id=eq.${state.session.user.id}&select=*&order=created_at.asc`);
+state.cart = await sb.select("cart_items", `user_id=eq.${state.session.user.id}&select=*&order=created_at.asc`);
 }catch(e){ toast("Could not load your account data: "+e.message, true); }
 }
 /* ================= AUTH HANDLERS ================= */
@@ -965,7 +1131,9 @@ const btn = document.querySelector('[data-action="save-product"]');
 const name = document.getElementById("pfName").value.trim();
 const price = parseFloat(document.getElementById("pfPrice").value);
 const description = document.getElementById("pfDesc").value.trim();
-const delivery = document.getElementById("pfDelivery").value;
+const dMin = document.getElementById("pfDeliveryMin").value.trim();
+const dMax = document.getElementById("pfDeliveryMax").value.trim();
+const delivery = dMin ? `${dMin}-${dMax||dMin}` : "";
 const note = document.getElementById("pfNote").value.trim();
 captureOptionValues();
 const optionValues = formDraft.optionValues.map(v=>v.trim()).filter(Boolean);
@@ -1008,29 +1176,44 @@ toast(err.message || "Could not save product", true);
 }
 async function handleDoPay(){
 const btn = document.querySelector('[data-action="do-pay"]');
-const draft = state.buyDraft;
-if(!draft){ toast("Nothing to pay.", true); return; }
+const items = state.checkoutItems;
+const proof = state.paymentProofDraft;
+if(!items || !items.length){ toast("Nothing to pay.", true); return; }
+if(!proof){ toast("Please upload your payment screenshot first.", true); return; }
+if(state.shippingChoice==='ship'){
 const addr = state.addresses.find(a=>a.is_default) || state.addresses[0];
 if(!addr){ toast("Please add a delivery address first.", true); return; }
-const merch = draft.product.price * draft.qty;
-const shipFee = state.shippingChoice==='ship' ? Number(state.settings.shipping_fee||0) : 0;
-const total = merch + shipFee;
+}
 btn.disabled = true; btn.textContent = "Processing...";
 try{
+const proofPath = `payments/${state.session.user.id}/${Date.now()}-${uid()}.jpg`;
+const proofUrl = await sb.upload(proofPath, proof.blob);
+const shipFee = state.shippingChoice==='ship' ? Number(state.settings.shipping_fee||0) : 0;
+const newOrders = [];
+for(const it of items){
+const uploadedCustom = await uploadCustomFiles(it.customFiles);
+const merch = it.product.price * it.qty;
 const payload = {
-user_id: state.session.user.id, product_id: draft.product.id, product_name: draft.product.name,
-product_image: (draft.product.images&&draft.product.images[0])||null, variation: draft.selected||null,
-quantity: draft.qty, unit_price: draft.product.price, shipping_option: state.shippingChoice,
-shipping_fee: shipFee, merchandise_subtotal: merch, total: total, status: "To Deliver",
-custom_link: draft.customLink || null,
+user_id: state.session.user.id, product_id: it.product.id, product_name: it.product.name,
+product_image: (it.product.images&&it.product.images[0])||null, variation: it.selected||null,
+quantity: it.qty, unit_price: it.product.price, shipping_option: state.shippingChoice,
+shipping_fee: shipFee, merchandise_subtotal: merch, total: merch + shipFee, status: "To Deliver",
+custom_files: uploadedCustom.map(f=>f.url),
+payment_proof_url: proofUrl,
 };
-const orderRows = await sb.insert("orders", payload);
-state.orders.push(orderRows[0]);
-const deliveryText = draft.product.delivery_estimate ? formatDate(draft.product.delivery_estimate) : "the estimated date";
-const msgText = `Your order is currently in the preparation stage, and the seller is expected to ship it by the latest ship date of ${deliveryText}. We will remind the seller to ship it as soon as possible. Thank you for your patience.`;
+const rows = await sb.insert("orders", payload);
+newOrders.push(rows[0]);
+if(it.cartItemId){
+await sb.remove("cart_items", `id=eq.${it.cartItemId}`);
+state.cart = state.cart.filter(c=>c.id!==it.cartItemId);
+}
+}
+state.orders.push(...newOrders);
+const deliveryText = items.length===1 ? formatDeliveryRange(items[0].product.delivery_estimate) : "the estimated delivery window";
+const msgText = `Your order is currently in the preparation stage. Estimated delivery: ${deliveryText}. We'll update you as soon as it ships. Thank you for your patience.`;
 const msgRows = await sb.insert("messages", { user_id: state.session.user.id, sender:"shop", message: msgText });
 state.messages.push(msgRows[0]);
-state.buyDraft = null; state.showBuyModal = false;
+state.checkoutItems = null; state.paymentProofDraft = null; state.cartSelected = {};
 toast("Order placed!");
 resetTo("home");
 nav("purchases");
@@ -1041,8 +1224,16 @@ toast(err.message || "Payment failed", true);
 }
 /* ================= DELEGATED EVENTS ================= */
 document.addEventListener("change", async (e) => {
-if(e.target && e.target.id === "imageFileInput"){
-await handleImageFiles(Array.from(e.target.files||[]));
+if(e.target && e.target.id === "globalFileInput"){
+const files = Array.from(e.target.files||[]);
+const target = state.fileInputTarget;
+e.target.value = "";
+if(!files.length || !target) return;
+if(target === "product"){ await handleImageFiles(files); }
+else if(target.startsWith("category:")){ await handleCategoryImage(target.split(":")[1], files[0]); }
+else if(target === "customFiles"){ await handleCustomFiles(files); }
+else if(target === "paymentProof"){ await handlePaymentProofFile(files[0]); }
+else if(target.startsWith("deliveryProof:")){ await handleDeliveryProofFile(target.split(":")[1], files[0]); }
 }
 });
 document.addEventListener("click", async (e) => {
@@ -1050,8 +1241,6 @@ const el = e.target.closest("[data-action]");
 if(!el) return;
 const action = el.dataset.action;
 const id = el.dataset.id;
-const linkInput = document.getElementById("customLinkInput");
-if(linkInput && state.buyDraft) state.buyDraft.customLink = linkInput.value;
 try{
 switch(action){
 case "enter": state.session ? resetTo("home") : nav("login"); break;
@@ -1069,12 +1258,17 @@ case "skip-google": toast("Google sign-in is coming soon!"); break;
 case "do-login": await handleLogin(); break;
 case "do-signup": await handleSignup(); break;
 case "go-profile": nav("profile"); break;
+case "go-cart": nav("cart"); break;
 case "go-purchases": nav("purchases"); break;
 case "go-inbox": nav("inbox"); break;
 case "go-chat": nav("chat"); break;
 case "go-admin-settings": nav("adminSettings"); break;
 case "open-category": nav("category", { categoryId:id }); break;
 case "open-product": carouselIdx = 0; nav("productDetail", { productId:id }); break;
+case "pick-category-image":
+state.fileInputTarget = "category:"+id;
+{ const inp=document.getElementById("globalFileInput"); inp.multiple=false; inp.click(); }
+break;
 case "add-category": state.categoryModal = {}; render(); break;
 case "edit-category": {
 const c = state.categories.find(x=>x.id===id);
@@ -1118,11 +1312,12 @@ toast(err.message, true);
 break;
 }
 case "close-modal-bg":
-if(state.showBuyModal) state.showBuyModal = false;
+if(e.target !== el) break;
+if(state.showBuyModal){ state.showBuyModal = false; state.buyDraft = null; }
 if(state.categoryModal) state.categoryModal = null;
 render();
 break;
-case "close-modal": state.showBuyModal = false; render(); break;
+case "close-modal": state.showBuyModal = false; state.buyDraft = null; render(); break;
 case "close-category-modal": state.categoryModal = null; render(); break;
 case "add-product": formDraft = {}; nav("productForm", { categoryId: el.dataset.category }); break;
 case "edit-product": formDraft = {}; nav("productForm", { productId:id }); break;
@@ -1153,7 +1348,10 @@ if(!formDraft.optionValues.length) formDraft.optionValues.push("");
 refreshOptionValuesUI();
 break;
 }
-case "pick-images": document.getElementById("imageFileInput").click(); break;
+case "pick-images":
+state.fileInputTarget = "product";
+{ const inp=document.getElementById("globalFileInput"); inp.multiple=true; inp.click(); }
+break;
 case "remove-image": formDraft.images.splice(Number(el.dataset.idx),1); refreshImagesUI(); break;
 case "save-product": await handleSaveProduct(el.dataset.editing); break;
 case "carousel-prev": carouselIdx = Math.max(0, carouselIdx-1); render(); break;
@@ -1165,25 +1363,104 @@ break;
 }
 case "open-buy": {
 const p = state.products.find(x=>x.id===id);
-state.buyDraft = { product:p, selected:(p.option_values&&p.option_values[0])||null, qty:1, customLink:"", showLinkInput:false };
+state.buyDraft = { product:p, selected:(p.option_values&&p.option_values[0])||null, qty:1, customFiles:[], mode:"buy" };
+state.showBuyModal = true;
+render();
+break;
+}
+case "open-cart-add": {
+const p = state.products.find(x=>x.id===id);
+state.buyDraft = { product:p, selected:(p.option_values&&p.option_values[0])||null, qty:1, customFiles:[], mode:"cart" };
 state.showBuyModal = true;
 render();
 break;
 }
 case "pick-buy-option": state.buyDraft.selected = el.dataset.value; selectPillGroup("pick-buy-option", el); break;
-case "toggle-link-input": state.buyDraft.showLinkInput = true; render(); break;
+case "pick-custom-files":
+state.fileInputTarget = "customFiles";
+{ const inp=document.getElementById("globalFileInput"); inp.multiple=true; inp.click(); }
+break;
+case "remove-custom-file": state.buyDraft.customFiles.splice(Number(el.dataset.idx),1); render(); break;
 case "qty-inc": state.buyDraft.qty++; el.parentElement.querySelector("span").textContent = state.buyDraft.qty; break;
 case "qty-dec": state.buyDraft.qty = Math.max(1, state.buyDraft.qty-1); el.parentElement.querySelector("span").textContent = state.buyDraft.qty; break;
-case "confirm-buy":
+case "confirm-buy": {
 if((state.buyDraft.product.option_values||[]).length && !state.buyDraft.selected){ toast("Please choose an option first.", true); break; }
-state.showBuyModal = false; state.shippingChoice = "pickup";
+state.checkoutItems = [{ product: state.buyDraft.product, selected: state.buyDraft.selected, qty: state.buyDraft.qty, customFiles: state.buyDraft.customFiles||[], cartItemId: null }];
+state.buyDraft = null; state.showBuyModal = false; state.shippingChoice = "pickup";
 nav("checkout");
 break;
-case "cancel-checkout": state.showBuyModal = true; back(); break;
+}
+case "confirm-add-cart": {
+if((state.buyDraft.product.option_values||[]).length && !state.buyDraft.selected){ toast("Please choose an option first.", true); break; }
+el.disabled = true; el.textContent = "Adding...";
+try{
+const uploaded = await uploadCustomFiles(state.buyDraft.customFiles);
+const payload = { user_id: state.session.user.id, product_id: state.buyDraft.product.id, variation: state.buyDraft.selected||null, quantity: state.buyDraft.qty, custom_files: uploaded.map(f=>f.url) };
+const rows = await sb.insert("cart_items", payload);
+state.cart.push(rows[0]);
+state.buyDraft = null; state.showBuyModal = false;
+toast("Added to cart!");
+render();
+}catch(err){
+el.disabled = false; el.textContent = "Add to Cart";
+toast(err.message || "Could not add to cart", true);
+}
+break;
+}
+case "toggle-cart-select": state.cartSelected[id] = !state.cartSelected[id]; render(); break;
+case "cart-select-all": {
+const allSelected = state.cart.length>0 && state.cart.every(ci=>state.cartSelected[ci.id]);
+state.cart.forEach(ci=> state.cartSelected[ci.id] = !allSelected);
+render();
+break;
+}
+case "cart-qty-inc": {
+const ci = state.cart.find(c=>c.id===id); ci.quantity++;
+await sb.update("cart_items", `id=eq.${id}`, { quantity: ci.quantity });
+render();
+break;
+}
+case "cart-qty-dec": {
+const ci = state.cart.find(c=>c.id===id); ci.quantity = Math.max(1, ci.quantity-1);
+await sb.update("cart_items", `id=eq.${id}`, { quantity: ci.quantity });
+render();
+break;
+}
+case "remove-cart-item": {
+await sb.remove("cart_items", `id=eq.${id}`);
+state.cart = state.cart.filter(c=>c.id!==id);
+delete state.cartSelected[id];
+render();
+toast("Removed from cart");
+break;
+}
+case "checkout-cart": {
+const selected = state.cart.filter(ci=>state.cartSelected[ci.id]);
+if(!selected.length){ toast("Please select at least one item.", true); break; }
+state.checkoutItems = selected.map(ci=>({
+product: state.products.find(p=>p.id===ci.product_id),
+selected: ci.variation, qty: ci.quantity,
+customFiles: (ci.custom_files||[]).map(url=>({url})),
+cartItemId: ci.id,
+}));
+state.shippingChoice = "pickup";
+nav("checkout");
+break;
+}
+case "cancel-checkout": state.checkoutItems = null; back(); break;
 case "pick-shipping": state.shippingChoice = el.dataset.value; render(); break;
 case "go-address-select": nav("addressList", { selectable:true }); break;
 case "go-address-add": nav("addressForm"); break;
 case "go-address-plain": nav("addressList", { selectable:false }); break;
+case "edit-address": nav("addressForm", { editId:id }); break;
+case "delete-address": {
+if(!confirm("Delete this address?")) break;
+await sb.remove("addresses", `id=eq.${id}`);
+state.addresses = state.addresses.filter(a=>a.id!==id);
+render();
+toast("Address deleted");
+break;
+}
 case "select-address": {
 await sb.update("addresses", `user_id=eq.${state.session.user.id}`, { is_default:false });
 await sb.update("addresses", `id=eq.${id}`, { is_default:true });
@@ -1202,26 +1479,68 @@ const barangay = document.getElementById("adBarangay").value.trim();
 const postal_code = document.getElementById("adPostal").value.trim();
 const street = document.getElementById("adStreet").value.trim();
 const isDefault = document.getElementById("defaultToggle").classList.contains("on");
+const editingId = el.dataset.editing;
 if(!full_name || !phone){ toast("Please enter a name and phone number.", true); break; }
 el.disabled = true; el.textContent = "Saving...";
 try{
 if(isDefault) await sb.update("addresses", `user_id=eq.${state.session.user.id}`, { is_default:false });
+if(editingId){
+const rows = await sb.update("addresses", `id=eq.${editingId}`, { full_name, phone, region, city, province, barangay, postal_code, street, is_default:isDefault });
+state.addresses = state.addresses.map(a => a.id===editingId ? rows[0] : (isDefault ? { ...a, is_default:false } : a));
+} else {
 const rows = await sb.insert("addresses", { user_id: state.session.user.id, full_name, phone, region, city, province, barangay, postal_code, street, is_default:isDefault });
 if(isDefault) state.addresses = state.addresses.map(a=>({...a,is_default:false}));
 state.addresses.push(rows[0]);
-toast("Address saved!");
+}
+toast(editingId ? "Address updated!" : "Address saved!");
 back();
 }catch(err){
-el.disabled = false; el.textContent = "Submit";
+el.disabled = false; el.textContent = editingId ? "Save changes" : "Submit";
 toast(err.message, true);
 }
 break;
 }
 case "go-payment": nav("payment"); break;
+case "pick-payment-proof":
+state.fileInputTarget = "paymentProof";
+{ const inp=document.getElementById("globalFileInput"); inp.multiple=false; inp.click(); }
+break;
 case "do-pay": await handleDoPay(); break;
+case "pick-delivery-proof":
+state.fileInputTarget = "deliveryProof:"+id;
+{ const inp=document.getElementById("globalFileInput"); inp.multiple=false; inp.click(); }
+break;
+case "mark-delivered": {
+const proof = state.deliveryProofDraft[id];
+if(!proof){ toast("Please upload a delivery proof photo first.", true); break; }
+el.disabled = true; el.textContent = "Saving...";
+try{
+const path = `deliveries/${id}/${Date.now()}.jpg`;
+const url = await sb.upload(path, proof.blob);
+const rows = await sb.update("orders", `id=eq.${id}`, { status:"Delivered", delivery_proof_url:url });
+const o = state.orders.find(x=>x.id===id);
+Object.assign(o, rows[0]);
+delete state.deliveryProofDraft[id];
+render();
+toast("Order marked as delivered!");
+}catch(err){
+el.disabled = false; el.textContent = "Mark Delivered";
+toast(err.message || "Could not update order", true);
+}
+break;
+}
+case "cancel-order": {
+if(!confirm("Cancel this order? This cannot be undone.")) break;
+await sb.update("orders", `id=eq.${id}`, { status:"Cancelled" });
+const o = state.orders.find(x=>x.id===id);
+o.status = "Cancelled";
+render();
+toast("Order cancelled");
+break;
+}
 case "toggle-order-status": {
 const o = state.orders.find(x=>x.id===id);
-const newStatus = o.status === "Delivered" ? "To Deliver" : "Delivered";
+const newStatus = "To Deliver";
 await sb.update("orders", `id=eq.${id}`, { status:newStatus });
 o.status = newStatus;
 render();
@@ -1251,11 +1570,12 @@ const tagline = document.getElementById("asTagline").value.trim();
 const gcash_name = document.getElementById("asGcashName").value.trim();
 const gcash_number = document.getElementById("asGcashNumber").value.trim();
 const shipping_fee = parseFloat(document.getElementById("asShipFee").value) || 0;
+const pickup_address = document.getElementById("asPickupAddr").value.trim();
 const fb1 = document.getElementById("asFb1").value.trim();
 const fb2 = document.getElementById("asFb2").value.trim();
 el.disabled = true; el.textContent = "Saving...";
 try{
-const rows = await sb.update("shop_settings", "id=eq.1", { shop_name, tagline, gcash_name, gcash_number, shipping_fee, fb_links:[fb1,fb2].filter(Boolean) });
+const rows = await sb.update("shop_settings", "id=eq.1", { shop_name, tagline, gcash_name, gcash_number, shipping_fee, pickup_address, fb_links:[fb1,fb2].filter(Boolean) });
 state.settings = rows[0];
 toast("Settings saved!");
 back();
@@ -1269,6 +1589,7 @@ case "sign-out":
 await sb.signOut();
 storageRemove("mc_refresh_token");
 state.session = null; state.profile = null; state.addresses=[]; state.orders=[]; state.messages=[];
+state.cart=[]; state.cartSelected={}; state.checkoutItems=null; state.paymentProofDraft=null; state.deliveryProofDraft={};
 resetTo("landing");
 break;
 case "send-message": {
