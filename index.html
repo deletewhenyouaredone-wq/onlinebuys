@@ -29,12 +29,13 @@ background:var(--pale);
 position:relative;
 box-shadow:0 0 60px rgba(0,0,0,0.5);
 overflow-x:hidden;
+display:flex; flex-direction:column;
 }
 @media (min-width:520px){
 body{ padding:28px 12px; }
 #app-shell{ min-height:92vh; min-height:92dvh; border-radius:32px; overflow:hidden; }
 }
-#app{ min-height:100%; display:flex; flex-direction:column; }
+#app{ flex:1; min-height:100%; display:flex; flex-direction:column; }
 a{ color:inherit; }
 button{ font-family:inherit; cursor:pointer; }
 input,textarea,select{ font-family:inherit; }
