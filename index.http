@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mika's Craft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--deep:#453a72; --deep2:#5b4a86; --mid:#8567b0; --mid-light:#a68fc9;
+--lavender:#c3aede; --pale:#f2ecf9; --tan:#cda876; --tan-dark:#9c7a4e;
+--ink:#3d3157; --white:#ffffff; --accent:#8f6bc4; --danger:#c65858; --ok:#4a9d6f;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+font-family:'Baloo 2',system-ui,sans-serif;
+background:#221a35;
+min-height:100vh;
+display:flex; justify-content:center;
+color:var(--ink);
+-webkit-font-smoothing:antialiased;
+}
+#app-shell{
+width:100%; max-width:460px; min-height:100vh;
+background:var(--pale);
+position:relative;
+box-shadow:0 0 60px rgba(0,0,0,0.5);
+overflow-x:hidden;
+}
+@media (min-width:520px){
+body{ padding:28px 12px; }
+#app-shell{ min-height:92vh; border-radius:32px; overflow:hidden; }
+}
+#app{ min-height:100%; display:flex; flex-direction:column; }
+a{ color:inherit; }
+button{ font-family:inherit; cursor:pointer; }
+input,textarea,select{ font-family:inherit; }
+img{ max-width:100%; display:block; }
+/* focus visibility */
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, [tabindex]:focus-visible{
+outline:3px solid #ffd166; outline-offset:2px;
+}
+@media (prefers-reduced-motion: reduce){
+*{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+}
+.script{ font-family:'Caveat',cursive; font-weight:700; }
+.chunky{ font-family:'Baloo 2',sans-serif; font-weight:800; }
+.scrollarea{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.scrollarea::-webkit-scrollbar{ display:none; }
+.scrollarea{ scrollbar-width:none; }
+/* ---------- decorative screens (landing / login / signup / home) ---------- */
+.deco-bg{
+background:linear-gradient(165deg,#332a56 0%, var(--deep2) 30%, var(--mid) 65%, var(--lavender) 100%);
+min-height:100%;
+position:relative;
+}
+.deco-bg::before{
+content:""; position:absolute; inset:0; pointer-events:none;
+background:
+radial-gradient(circle at 15% 10%, rgba(255,255,255,0.06), transparent 40%),
+radial-gradient(circle at 85% 85%, rgba(255,255,255,0.08), transparent 45%);
+}
+.float{ position:absolute; opacity:0.85; animation:floaty 6s ease-in-out infinite; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.25)); }
+@keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(-4deg);} 50%{ transform:translateY(-10px) rotate(4deg);} }
+/* ---------- functional screens ---------- */
+.flat-bg{ background:linear-gradient(180deg,var(--deep2),var(--deep)); min-height:100%; color:#fff; }
+/* ---------- header ---------- */
+.header{ padding:22px 20px 12px; position:relative; }
+.backbtn{ background:none; border:none; padding:6px; margin:-6px 0 6px -6px; border-radius:10px; }
+.backbtn svg{ display:block; }
+.header h1{ margin:0; font-size:28px; line-height:1.15; }
+.header p.sub{ margin:2px 0 0; font-size:13px; opacity:0.75; }
+.header-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+/* ---------- buttons ---------- */
+.btn{
+border:none; border-radius:999px; padding:14px 24px; font-weight:700; font-size:16px;
+display:inline-flex; align-items:center; justify-content:center; gap:8px;
+transition:transform .08s ease;
+}
+.btn:active{ transform:scale(0.97); }
+.btn-primary{ background:var(--accent); color:#fff; box-shadow:0 4px 0 var(--deep); }
+.btn-primary:disabled{ opacity:0.45; box-shadow:none; cursor:not-allowed; }
+.btn-ghost{ background:rgba(255,255,255,0.55); color:var(--deep); }
+.btn-ghost-dark{ background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.25); }
+.btn-block{ width:100%; }
+.btn-sm{ padding:9px 16px; font-size:14px; }
+.btn-danger{ background:var(--danger); color:#fff; }
+.btn-row{ display:flex; gap:12px; }
+.btn-row .btn{ flex:1; }
+.icon-btn{ background:rgba(255,255,255,0.7); border:none; border-radius:999px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; }
+.icon-btn-dark{ background:rgba(255,255,255,0.15); }
+/* ---------- fields ---------- */
+.field{ margin-bottom:14px; text-align:left; }
+.field label{ display:block; font-size:13px; font-weight:700; margin-bottom:6px; }
+.field input, .field textarea, .field select{
+width:100%; padding:13px 16px; border-radius:16px; border:none; font-size:15px; background:#fff; color:var(--ink);
+}
+.field textarea{ resize:vertical; min-height:80px; }
+.field-dark label{ color:#fff; }
+.pw-wrap{ position:relative; }
+.pw-wrap input{ padding-right:44px; }
+.pw-toggle{ position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; padding:8px; }
+/* ---------- torn paper note ---------- */
+.torn{
+background:linear-gradient(180deg,var(--tan),var(--tan-dark));
+color:#fff; padding:14px 16px; border-radius:4px 18px 4px 18px; font-size:13.5px; line-height:1.4;
+clip-path:polygon(0 4%,3% 0,8% 3%,14% 0,20% 3%,28% 0,36% 3%,44% 0,52% 3%,60% 0,68% 3%,76% 0,84% 3%,92% 0,97% 3%,100% 0,100% 96%,97% 100%,90% 97%,82% 100%,74% 97%,66% 100%,58% 97%,50% 100%,42% 97%,34% 100%,26% 97%,18% 100%,10% 97%,3% 100%,0 96%);
+flex:1;
+}
+.torn textarea{ background:transparent; border:none; color:#fff; width:100%; font-size:13.5px; resize:none; }
+.torn textarea::placeholder{ color:rgba(255,255,255,0.7); }
+/* ---------- organic photo box ---------- */
+.blob{
+border-radius:42% 58% 61% 39%/45% 48% 52% 55%;
+border:4px solid #fff; background:var(--lavender); background-size:cover; background-position:center;
+display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;
+}
+.blob img{ width:100%; height:100%; object-fit:cover; }
+/* ---------- pills ---------- */
+.pill{ border:none; border-radius:999px; padding:9px 18px; font-weight:700; font-size:13px; background:rgba(255,255,255,0.55); color:var(--ink); }
+.pill.active{ background:var(--deep); color:#fff; }
+.pill-dark{ background:rgba(255,255,255,0.15); color:#fff; }
+.pill-dark.active{ background:#fff; color:var(--deep); }
+.pill-wrap{ display:flex; gap:8px; flex-wrap:wrap; }
+.badge{ display:inline-block; background:var(--deep); color:#fff; font-size:11px; font-weight:700; border-radius:999px; padding:3px 12px; }
+/* ---------- toggle ---------- */
+.toggle{ display:inline-flex; align-items:center; gap:10px; }
+.toggle-track{ width:42px; height:24px; border-radius:999px; background:rgba(255,255,255,0.35); position:relative; flex-shrink:0; transition:background .15s;}
+.toggle-track.on{ background:#fff; }
+.toggle-thumb{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .15s; }
+.toggle-track.on .toggle-thumb{ left:20px; background:var(--deep); }
+/* ---------- stepper ---------- */
+.stepper{ display:inline-flex; align-items:center; gap:12px; background:rgba(255,255,255,0.15); border-radius:999px; padding:5px; }
+.stepper button{ width:30px; height:30px; border-radius:50%; border:none; background:rgba(255,255,255,0.75); display:flex; align-items:center; justify-content:center; }
+.stepper span{ min-width:22px; text-align:center; font-weight:700; }
+/* ---------- cards / rows ---------- */
+.panel{ background:rgba(255,255,255,0.09); border-radius:18px; padding:16px; margin-bottom:14px; }
+.row-between{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.divider{ height:1px; background:rgba(255,255,255,0.18); margin:10px 0; }
+.empty-state{ text-align:center; opacity:0.65; padding:40px 20px; font-size:14px; }
+.admin-actions{ position:absolute; top:0; right:0; display:flex; gap:6px; }
+/* ---------- modal ---------- */
+.modal-overlay{ position:fixed; inset:0; background:rgba(20,14,35,0.55); display:flex; align-items:flex-end; justify-content:center; z-index:100; }
+.modal-sheet{
+width:100%; max-width:460px; max-height:88vh; overflow-y:auto; background:var(--deep2);
+border-radius:26px 26px 0 0; padding:22px; position:relative; color:#fff;
+}
+.modal-close{ position:absolute; top:16px; right:16px; background:none; border:none; }
+/* ---------- toast ---------- */
+#toast{
+position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(120%);
+background:#2b2144; color:#fff; padding:12px 20px; border-radius:14px; font-size:14px; font-weight:600;
+max-width:88%; text-align:center; z-index:200; transition:transform .25s ease; box-shadow:0 8px 24px rgba(0,0,0,0.35);
+}
+#toast.show{ transform:translateX(-50%) translateY(0); }
+#toast.err{ background:var(--danger); }
+/* ---------- spinner ---------- */
+.spinner{ width:34px; height:34px; border-radius:50%; border:4px solid rgba(255,255,255,0.25); border-top-color:#fff; animation:spin 0.8s linear infinite; margin:60px auto; }
+.spinner-dark{ border:4px solid rgba(69,58,114,0.2); border-top-color:var(--deep); }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+/* ---------- home ---------- */
+.home-cat-row{ display:flex; gap:14px; align-items:stretch; position:relative; margin-bottom:22px; }
+.home-cat-photo{ width:118px; height:118px; cursor:pointer; }
+.bottom-nav{
+position:sticky; bottom:16px; margin:20px 20px 0; background:rgba(69,58,114,0.88); backdrop-filter:blur(6px);
+border-radius:999px; padding:13px 34px; display:flex; justify-content:space-around;
+}
+.bottom-nav button{ background:none; border:none; }
+/* ---------- product list row ---------- */
+.prod-row{ display:flex; gap:14px; align-items:flex-start; position:relative; margin-bottom:16px; cursor:pointer; }
+.prod-photo{ width:88px; height:88px; }
+/* ---------- product detail ---------- */
+.carousel{ position:relative; margin-bottom:16px; }
+.carousel-img{ width:100%; height:300px; border:5px solid #fff; }
+.carousel-arrow{ position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.8); border:none; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; }
+.carousel-dots{ position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:6px; }
+.carousel-dots span{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.45); }
+.carousel-dots span.on{ background:#fff; }
+.price-tag{ position:absolute; right:12px; bottom:-16px; background:var(--deep); color:#fff; border-radius:999px; padding:8px 18px; font-weight:800; font-size:16px; }
+.sticky-buy{ position:sticky; bottom:0; margin-top:auto; background:rgba(30,22,50,0.94); backdrop-filter:blur(6px); padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+/* ---------- image thumbs (product form) ---------- */
+.thumb-wrap{ position:relative; width:72px; height:72px; }
+.thumb-wrap img{ width:100%; height:100%; object-fit:cover; border-radius:16px; border:3px solid #fff; }
+.thumb-remove{ position:absolute; top:-6px; right:-6px; background:#fff; border:none; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
+.thumb-add{ width:72px; height:72px; border:3px solid #fff; border-radius:16px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; }
+/* ---------- checkout ---------- */
+.kv-row{ display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:7px; }
+.kv-row.total{ font-size:17px; font-weight:800; }
+/* ---------- chat ---------- */
+.chat-scroll{ flex:1; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:10px; }
+.bubble{ max-width:78%; padding:11px 15px; border-radius:18px; font-size:14px; line-height:1.4; }
+.bubble.shop{ align-self:flex-start; background:rgba(255,255,255,0.16); border-bottom-left-radius:4px; }
+.bubble.me{ align-self:flex-end; background:rgba(255,255,255,0.32); border-bottom-right-radius:4px; }
+.chat-input-row{ padding:14px; display:flex; gap:10px; }
+.chat-input-row input{ flex:1; border:none; border-radius:999px; padding:12px 18px; font-size:15px; }
+.chat-send{ width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.msg-row{ display:flex; gap:12px; align-items:center; background:rgba(255,255,255,0.1); border-radius:18px; padding:14px; cursor:pointer; }
+.avatar{ width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,0.22); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.hint{ font-size:11.5px; opacity:0.65; margin-top:4px; }
+.link-line{ color:#d8c6f2; font-size:11px; word-break:break-all; display:block; margin-top:2px; }
+.center-text{ text-align:center; }
+.mt8{ margin-top:8px;} .mt12{ margin-top:12px;} .mt16{ margin-top:16px;} .mt20{ margin-top:20px;} .mt24{ margin-top:24px;}
+.mb8{ margin-bottom:8px;} .mb12{ margin-bottom:12px;} .mb16{ margin-bottom:16px;}
+</style>
+</head>
+<body>
+<div id="app-shell">
+<div id="app"></div>
+</div>
+<div id="toast"></div>
+<script>
+/* ================= CONFIG ================= */
+const SUPABASE_URL = "https://sxlwfscpjyomizzucchv.supabase.co";
+const SUPABASE_KEY = "sb_publishable_1e3b-jjQ50sHkuLKgkve_w_vVObir66";
+const BUCKET = "product-images";
+/* ================= STORAGE (localStorage w/ safe fallback) ================= */
+let memStore = {};
+function storageGet(key){ try{ return localStorage.getItem(key); }catch(e){ return memStore[key] ?? null; } }
+function storageSet(key,val){ try{ localStorage.setItem(key,val); }catch(e){ memStore[key]=val; } }
+function storageRemove(key){ try{ localStorage.removeItem(key); }catch(e){ delete memStore[key]; } }
+/* ================= SUPABASE (plain fetch wrapper) ================= */
+function authHeaders(){
+const token = state.session ? state.session.access_token : SUPABASE_KEY;
+return { apikey: SUPABASE_KEY, Authorization: "Bearer " + token };
+}
+async function sbAuthRequest(path, body){
+const res = await fetch(SUPABASE_URL + path, {
+method:"POST",
+headers:{ "Content-Type":"application/json", apikey:SUPABASE_KEY },
+body:JSON.stringify(body)
+});
+const data = await res.json().catch(()=>({}));
+if(!res.ok){ throw new Error(data.error_description || data.msg || data.error || data.message || "Request failed"); }
+return data;
+}
+const sb = {
+signUp: (email,password,name) => sbAuthRequest("/auth/v1/signup", { email, password, data:{ name } }),
+signIn: (email,password) => sbAuthRequest("/auth/v1/token?grant_type=password", { email, password }),
+refresh: (refresh_token) => sbAuthRequest("/auth/v1/token?grant_type=refresh_token", { refresh_token }),
+async signOut(){
+if(state.session){
+try{
+await fetch(SUPABASE_URL+"/auth/v1/logout",{ method:"POST", headers:authHeaders() });
+}catch(e){}
+}
+},
+async select(table, query){
+const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query||""}`, { headers:authHeaders() });
+const data = await res.json().catch(()=>[]);
+if(!res.ok) throw new Error((data && data.message) || ("Failed to load "+table));
+return data;
+},
+async insert(table, payload){
+const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+method:"POST",
+headers:{ ...authHeaders(), "Content-Type":"application/json", Prefer:"return=representation" },
+body:JSON.stringify(payload)
+});
+const data = await res.json().catch(()=>({}));
+if(!res.ok) throw new Error((data && data.message) || "Insert failed");
+return data;
+},
+async update(table, matchQuery, payload){
+const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${matchQuery}`, {
+method:"PATCH",
+headers:{ ...authHeaders(), "Content-Type":"application/json", Prefer:"return=representation" },
+body:JSON.stringify(payload)
+});
+const data = await res.json().catch(()=>({}));
+if(!res.ok) throw new Error((data && data.message) || "Update failed");
+return data;
+},
+async remove(table, matchQuery){
+const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${matchQuery}`, { method:"DELETE", headers:authHeaders() });
+if(!res.ok){ const data = await res.json().catch(()=>({})); throw new Error((data&&data.message)||"Delete failed"); }
+},
+async upload(path, blob){
+const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+method:"POST",
+headers:{ ...authHeaders(), "Content-Type": blob.type || "image/jpeg" },
+body: blob
+});
+const data = await res.json().catch(()=>({}));
+if(!res.ok) throw new Error((data && data.message) || "Image upload failed");
+return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+};
+/* ================= IMAGE COMPRESSION ================= */
+function compressImage(file, maxDim, quality){
+maxDim = maxDim || 1280; quality = quality || 0.82;
+return new Promise((resolve,reject)=>{
+const reader = new FileReader();
+reader.onerror = () => reject(new Error("Could not read file"));
+reader.onload = (e) => {
+const img = new Image();
+img.onerror = () => reject(new Error("Could not read image"));
+img.onload = () => {
+let { width, height } = img;
+if(width > maxDim || height > maxDim){
+if(width > height){ height = Math.round(height*(maxDim/width)); width = maxDim; }
+else { width = Math.round(width*(maxDim/height)); height = maxDim; }
+}
+const canvas = document.createElement("canvas");
+canvas.width = width; canvas.height = height;
+canvas.getContext("2d").drawImage(img,0,0,width,height);
+canvas.toBlob((blob)=> blob ? resolve(blob) : reject(new Error("Compression failed")), "image/jpeg", quality);
+};
+img.src = e.target.result;
+};
+reader.readAsDataURL(file);
+});
+}
+/* ================= STATE ================= */
+const state = {
+session:null, profile:null, roleView:"admin",
+screen:"landing", params:{}, history:[],
+categories:[], products:[], settings:{ shop_name:"Mika's Craft", tagline:"with printing services", shipping_fee:50, fb_links:[], gcash_name:"", gcash_number:"" },
+addresses:[], orders:[], messages:[],
+draftImages:[], // {blob, url} pending upload for product form
+buyDraft:null, // {product, selected, qty, customLink}
+shippingChoice:"pickup",
+loading:true, authBusy:false,
+};
+function isAdmin(){ return state.profile && state.profile.role === "admin"; }
+function effectiveRole(){ return isAdmin() ? state.roleView : "customer"; }
+function nav(screen, params){
+state.history.push({ screen: state.screen, params: state.params });
+state.screen = screen; state.params = params || {};
+render();
+}
+function back(){
+const prev = state.history.pop();
+if(prev){ state.screen = prev.screen; state.params = prev.params; render(); }
+}
+function resetTo(screen, params){ state.history = []; state.screen = screen; state.params = params || {}; render(); }
+/* ================= UTILS ================= */
+function esc(str){
+return String(str==null?"":str).replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function peso(n){ return "\u20b1" + Number(n||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function toast(msg, isErr){
+const el = document.getElementById("toast");
+el.textContent = msg;
+el.className = isErr ? "err show" : "show";
+clearTimeout(window.__toastTimer);
+window.__toastTimer = setTimeout(()=> el.classList.remove("show"), 3200);
+}
+function iconSvg(name){
+const icons = {
+back:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+plus:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+minus:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+x:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+cart:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
+mail:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="M22 6l-10 7L2 6"></path></svg>',
+user:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+pencil:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"></path></svg>',
+trash:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
+eye:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+eyeOff:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.6 18.6 0 0 1 5.06-5.94M9.9 4.24A10.9 10.9 0 0 1 12 4c7 0 11 8 11 8a18.6 18.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>',
+send:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
+settings:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path></svg>',
+logout:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>',
+chevron:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>',
+};
+return icons[name] || "";
+}
+function firstName(s){ const parts=(s||"Mika's Craft").split(" "); return parts[0]; }
+function lastWord(s){ const parts=(s||"Mika's Craft").split(" "); return parts.slice(1).join(" ") || parts[0]; }
+function formatDate(d){ if(!d) return ""; try{ const dt=new Date(d+"T00:00:00"); return dt.toLocaleDateString("en-PH",{month:"short",day:"numeric",year:"numeric"}); }catch(e){ return d; } }
+function formatDateShort(iso){ try{ return new Date(iso).toLocaleDateString("en-PH",{month:"2-digit",day:"2-digit",year:"numeric"}); }catch(e){ return ""; } }
+/* ================= TRANSIENT UI STATE ================= */
+let formDraft = {};
+let carouselIdx = 0;
+/* ================= SCREENS ================= */
+function screenLanding(){
+return `
+<div class="deco-bg" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 32px;min-height:100vh;">
+<span class="float" style="top:8%;right:10%;font-size:42px;">\u{1F98B}</span>
+<span class="float" style="bottom:22%;left:8%;font-size:34px;animation-delay:1.4s;">\u{1F33C}</span>
+<span class="float" style="bottom:12%;right:14%;font-size:26px;animation-delay:2.6s;">\u{1F98B}</span>
+<p class="script" style="font-size:46px;color:#fff;margin:0;text-shadow:2px 3px 0 rgba(0,0,0,0.18);position:relative;">${esc(firstName(state.settings.shop_name))}</p>
+<h1 class="chunky" style="font-size:56px;color:#fff;margin:-8px 0 8px;-webkit-text-stroke:2px var(--deep);letter-spacing:1px;position:relative;">${esc(lastWord(state.settings.shop_name)).toUpperCase()}</h1>
+<p style="color:rgba(255,255,255,0.92);letter-spacing:3px;font-size:12.5px;margin:0 0 54px;position:relative;">${esc((state.settings.tagline||"").toUpperCase())}</p>
+<button class="btn btn-ghost" style="width:220px;font-size:19px;padding:16px 0;position:relative;" data-action="enter">ENTER</button>
+<p style="margin-top:20px;color:rgba(255,255,255,0.85);font-size:12px;letter-spacing:1px;position:relative;">\u2721 ALWAYS KEEP GOING \u2721</p>
+</div>`;
+}
+function screenLogin(){
+return `
+<div class="deco-bg" style="min-height:100vh;padding:34px 26px;">
+<p class="script" style="font-size:42px;color:#fff;margin:14px 0 26px;">Login</p>
+<div class="field field-dark"><label>Email address</label><input id="loginEmail" type="email" placeholder="Enter email" autocomplete="email"></div>
+<div class="field field-dark"><label>Password</label>
+<div class="pw-wrap"><input id="loginPw" type="password" placeholder="Enter password" autocomplete="current-password">
+<button type="button" class="pw-toggle" data-action="toggle-pw" data-target="loginPw">${iconSvg("eye")}</button></div>
+</div>
+<div id="loginError" style="color:#ffd3d3;font-size:13px;min-height:18px;"></div>
+<button class="btn btn-primary btn-block mt8" data-action="do-login" ${state.authBusy?"disabled":""}>${state.authBusy?"Logging in...":"Log in"}</button>
+<p class="center-text" style="color:rgba(255,255,255,0.85);font-size:13px;margin-top:16px;">Don't have an account? <a href="#" data-action="goto-signup" style="text-decoration:underline;font-weight:700;">Sign up</a></p>
+<p class="hint center-text" style="color:rgba(255,255,255,0.6);margin-top:18px;">Just signed up? Check your email for a confirmation link first.</p>
+</div>`;
+}
+function screenSignup(){
+return `
+<div class="deco-bg" style="min-height:100vh;padding:20px 26px 34px;">
+<button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
+<p class="script" style="font-size:42px;color:#fff;margin:6px 0 24px;">Sign up</p>
+<div class="field field-dark"><label>Your name</label><input id="suName" type="text" placeholder="Full name"></div>
+<div class="field field-dark"><label>Email address</label><input id="suEmail" type="email" placeholder="Email address" autocomplete="email"></div>
+<div class="field field-dark"><label>Create password</label>
+<div class="pw-wrap"><input id="suPw" type="password" placeholder="Enter password" autocomplete="new-password">
+<button type="button" class="pw-toggle" data-action="toggle-pw" data-target="suPw">${iconSvg("eye")}</button></div>
+</div>
+<div class="field field-dark"><label>Confirm password</label>
+<div class="pw-wrap"><input id="suPw2" type="password" placeholder="Confirm password" autocomplete="new-password">
+<button type="button" class="pw-toggle" data-action="toggle-pw" data-target="suPw2">${iconSvg("eye")}</button></div>
+</div>
+<div id="signupError" style="color:#ffd3d3;font-size:13px;min-height:18px;"></div>
+<button class="btn btn-primary btn-block mt8" data-action="do-signup" ${state.authBusy?"disabled":""}>${state.authBusy?"Creating account...":"Sign up"}</button>
+<div style="display:flex;align-items:center;gap:10px;margin:20px 0;color:rgba(255,255,255,0.55);font-size:12px;">
+<div style="flex:1;height:1px;background:rgba(255,255,255,0.3);"></div>or<div style="flex:1;height:1px;background:rgba(255,255,255,0.3);"></div>
+</div>
+<button class="btn btn-ghost btn-block" data-action="skip-google">Continue with Google</button>
+<p class="hint center-text" style="margin-top:8px;">Google sign-in coming soon</p>
+</div>`;
+}
+function screenHome(){
+const cats = state.categories;
+const role = effectiveRole();
+let catsHtml = cats.map(c => `
+<div class="home-cat-row">
+<div style="flex:0 0 auto;">
+<p class="script" style="font-size:21px;color:#fff;margin:0 0 6px;">${esc(c.name)}</p>
+<div class="blob home-cat-photo" data-action="open-category" data-id="${c.id}"></div>
+</div>
+<div class="torn">${esc(c.description||"")}</div>
+${role==="admin"?`<div class="admin-actions">
+<button class="icon-btn" data-action="edit-category" data-id="${c.id}">${iconSvg("pencil")}</button>
+<button class="icon-btn" data-action="delete-category" data-id="${c.id}">${iconSvg("trash")}</button>
+</div>`:""}
+</div>`).join("");
+if(!cats.length){ catsHtml = `<p class="empty-state" style="color:#fff;">No categories yet.</p>`; }
+return `
+<div class="deco-bg" style="min-height:100vh;display:flex;flex-direction:column;">
+<div style="padding:22px 22px 4px;display:flex;justify-content:space-between;align-items:flex-start;">
+<button class="icon-btn" style="width:44px;height:44px;background:rgba(255,255,255,0.28);" data-action="go-profile">${iconSvg("user")}</button>
+<div style="text-align:right;">
+<p class="script" style="font-size:24px;color:#fff;margin:0;">${esc(firstName(state.settings.shop_name))}</p>
+<h1 class="chunky" style="font-size:27px;color:#fff;margin:-4px 0 0;">HOME'S</h1>
+</div>
+</div>
+<div style="padding:14px 22px 4px;flex:1;">
+${catsHtml}
+${role==="admin"?`<button class="btn btn-ghost-dark btn-block" data-action="add-category" style="border-style:dashed;">${iconSvg("plus")} Add category</button>`:""}
+</div>
+<p class="script" style="padding:14px 22px 0;color:rgba(255,255,255,0.85);font-size:15px;">Dream big, start small, but never stop.</p>
+<div class="bottom-nav">
+<button data-action="go-purchases" style="color:#fff;">${iconSvg("cart")}</button>
+<div style="width:1px;background:rgba(255,255,255,0.35);"></div>
+<button data-action="go-inbox" style="color:#fff;">${iconSvg("mail")}</button>
+</div>
+<div style="height:20px;"></div>
+</div>`;
+}
+function screenCategory(){
+const cat = state.categories.find(c => c.id === state.params.categoryId);
+if(!cat) return `<div class="flat-bg" style="padding:40px;color:#fff;">Category not found.<div class="mt16"><button class="btn btn-ghost" data-action="back">Go back</button></div></div>`;
+const role = effectiveRole();
+const prods = state.products.filter(p => p.category_id === cat.id);
+let rows = prods.map(p => {
+const thumb = (p.images && p.images[0]) || "";
+return `
+<div class="prod-row" data-action="open-product" data-id="${p.id}">
+<div style="text-align:center;flex-shrink:0;">
+<div class="blob prod-photo" style="${thumb?`background-image:url('${esc(thumb)}')`:""}"></div>
+<div class="badge mt8">${peso(p.price)}</div>
+</div>
+<div class="torn">${esc(p.name)}${p.description?" \u2014 "+esc(p.description):""}</div>
+${role==="admin"?`<div class="admin-actions">
+<button class="icon-btn" data-action="edit-product" data-id="${p.id}">${iconSvg("pencil")}</button>
+<button class="icon-btn" data-action="delete-product" data-id="${p.id}">${iconSvg("trash")}</button>
+</div>`:""}
+</div>`;
+}).join("");
+if(!prods.length) rows = `<p class="empty-state" style="color:#fff;">No products yet in ${esc(cat.name)}.</p>`;
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
+<p class="script" style="font-size:20px;color:#fff;margin:0;">${esc(cat.name)}</p><h1 class="chunky" style="color:#fff;">SERVICE'S</h1></div>
+<div style="padding:0 20px 30px;">
+${rows}
+${role==="admin"?`<button class="btn btn-ghost-dark btn-block mt8" style="border-style:dashed;" data-action="add-product" data-category="${cat.id}">${iconSvg("plus")} Add product</button>`:""}
+</div>
+</div>`;
+}
+function screenProductForm(){
+const editing = state.params.productId ? state.products.find(p=>p.id===state.params.productId) : null;
+if(!formDraft.__init){
+formDraft = {
+__init:true,
+images: editing ? (editing.images||[]).map(url=>({url})) : [],
+categoryId: editing ? editing.category_id : state.params.categoryId,
+optionType: editing ? (editing.option_type||"size") : "size",
+optionValues: editing && editing.option_values && editing.option_values.length ? editing.option_values.slice() : [""],
+};
+}
+const imagesHtml = formDraft.images.map((img,i)=>`<div class="thumb-wrap"><img src="${esc(img.url)}"><button class="thumb-remove" data-action="remove-image" data-idx="${i}">${iconSvg("x")}</button></div>`).join("");
+const addImgBtn = formDraft.images.length < 10 ? `<div class="thumb-add" data-action="pick-images">${iconSvg("plus")}</div>` : "";
+const catPills = state.categories.map(c=>`<button class="pill${formDraft.categoryId===c.id?" active":""}" data-action="pick-category" data-id="${c.id}">${esc(c.name)}</button>`).join("");
+const optValuesHtml = formDraft.optionValues.map((v,i)=>`
+<div style="display:flex;gap:8px;margin-bottom:8px;">
+<input class="optval-input" data-idx="${i}" value="${esc(v)}" placeholder="${formDraft.optionType==='size'?'e.g. Small':'e.g. Blue'}" style="flex:1;padding:11px 14px;border-radius:12px;border:none;">
+<button class="icon-btn-dark" style="border-radius:12px;width:42px;color:#fff;border:none;" data-action="remove-option-value" data-idx="${i}">${iconSvg("x")}</button>
+</div>`).join("");
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">${editing?"Edit product":"Add product"}</h1></div>
+<div style="padding:0 20px 40px;">
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;">Photos (up to 10)</div>
+<div id="imagesRow" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">${imagesHtml}${addImgBtn}</div>
+<input type="file" id="imageFileInput" accept="image/*" multiple style="display:none;">
+<div class="field field-dark"><label>Product name</label><input id="pfName" value="${editing?esc(editing.name):""}" placeholder="Enter text"></div>
+<div class="field field-dark"><label>Price (\u20b1)</label><input id="pfPrice" type="number" step="0.01" value="${editing?editing.price:""}" placeholder="Enter price"></div>
+<div class="field field-dark"><label>Description</label><textarea id="pfDesc" placeholder="Enter text">${editing?esc(editing.description||""):""}</textarea></div>
+<div class="field field-dark"><label>Category</label><div class="pill-wrap">${catPills || '<span class="hint">Add a category first</span>'}</div></div>
+<div class="field field-dark"><label>Estimated delivery</label><input id="pfDelivery" type="date" value="${editing?esc(editing.delivery_estimate||""):""}"></div>
+<div class="field field-dark"><label>This product has...</label>
+<div class="pill-wrap">
+<button class="pill${formDraft.optionType==='size'?' active':''}" data-action="pick-option-type" data-type="size">Size</button>
+<button class="pill${formDraft.optionType==='variant'?' active':''}" data-action="pick-option-type" data-type="variant">Variation</button>
+</div>
+</div>
+<div id="optValuesWrap">${optValuesHtml}</div>
+<button class="btn btn-ghost-dark btn-sm" data-action="add-option-value">${iconSvg("plus")} Add option</button>
+<div class="field field-dark mt16"><label>Customization note</label><textarea id="pfNote">${editing?esc(editing.custom_note||"Notes: Customize product have additional fees"):"Notes: Customize product have additional fees"}</textarea></div>
+<button class="btn btn-primary btn-block mt16" data-action="save-product" data-editing="${editing?editing.id:""}">Save product</button>
+</div>
+</div>`;
+}
+function screenProductDetail(){
+const p = state.products.find(x=>x.id===state.params.productId);
+if(!p) return `<div class="flat-bg" style="padding:40px;color:#fff;">Product not found.</div>`;
+const cat = state.categories.find(c=>c.id===p.category_id);
+const imgs = p.images || [];
+carouselIdx = Math.min(carouselIdx, Math.max(0,imgs.length-1));
+const mainImg = imgs[carouselIdx] || "";
+const dots = imgs.length>1 ? `<div class="carousel-dots">${imgs.map((_,i)=>`<span class="${i===carouselIdx?'on':''}"></span>`).join("")}</div>` : "";
+const arrows = imgs.length>1 ? `<button class="carousel-arrow" style="left:8px;" data-action="carousel-prev">${iconSvg("back")}</button><button class="carousel-arrow" style="right:8px;transform:translateY(-50%) rotate(180deg);" data-action="carousel-next">${iconSvg("back")}</button>` : "";
+const fbLinks = (state.settings.fb_links||[]).filter(Boolean).map(l=>`<a class="link-line" href="${esc(l)}" target="_blank" rel="noopener">${esc(l)}</a>`).join("");
+return `
+<div class="flat-bg" style="min-height:100vh;display:flex;flex-direction:column;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
+<p class="script" style="font-size:16px;color:#fff;margin:0;">${cat?esc(cat.name).toUpperCase():""}</p><h1 class="chunky" style="font-size:24px;color:#fff;">SERVICE'S</h1></div>
+<div style="padding:0 20px;flex:1;">
+<p class="script" style="font-size:24px;margin:0 0 12px;">${esc(p.name)}</p>
+<div class="carousel">
+<div class="blob carousel-img" style="${mainImg?`background-image:url('${esc(mainImg)}')`:""}"></div>
+${arrows}${dots}
+<div class="price-tag">${peso(p.price)}</div>
+</div>
+<p style="opacity:0.9;font-size:14px;line-height:1.6;margin-top:26px;">${esc(p.description||"")}</p>
+</div>
+<div class="sticky-buy">
+<div style="font-size:9.5px;opacity:0.8;line-height:1.5;"><div style="font-weight:700;">FOR DM'S, MESSAGE US:</div>${fbLinks || '<span style="opacity:0.6;">No contact link set yet</span>'}</div>
+<button class="btn btn-primary" style="flex-shrink:0;" data-action="open-buy" data-id="${p.id}">${iconSvg("cart")} Buy</button>
+</div>
+</div>`;
+}
+function buyModalHtml(){
+if(!state.buyDraft) return "";
+const p = state.buyDraft.product;
+const img = (p.images && p.images[0]) || "";
+const opts = p.option_values || [];
+const pills = opts.map(v=>`<button class="pill pill-dark${state.buyDraft.selected===v?' active':''}" data-action="pick-buy-option" data-value="${esc(v)}">${esc(v)}</button>`).join("");
+return `
+<div class="modal-overlay" data-action="close-modal-bg">
+<div class="modal-sheet" onclick="event.stopPropagation()">
+<button class="modal-close" style="color:#fff;" data-action="close-modal">${iconSvg("x")}</button>
+<div style="display:flex;gap:14px;margin-bottom:16px;">
+<div class="blob" style="width:84px;height:84px;flex-shrink:0;${img?`background-image:url('${esc(img)}')`:""}"></div>
+<div><div style="font-weight:700;">${esc(p.name)}</div><div style="font-size:20px;font-weight:800;">${peso(p.price)}</div></div>
+</div>
+<div class="divider"></div>
+<div style="font-size:13px;opacity:0.85;margin-bottom:14px;">Estimated delivery: <strong style="opacity:1;">${p.delivery_estimate?formatDate(p.delivery_estimate):"To be confirmed"}</strong></div>
+${opts.length?`<div class="mb16"><div style="font-size:13px;font-weight:700;margin-bottom:8px;text-transform:capitalize;">${p.option_type==='size'?'Size':'Variation'}</div><div class="pill-wrap">${pills}</div></div>`:""}
+<div class="mb8">
+<div style="font-size:13px;margin-bottom:8px;">Add link of documents, photos, or want customize item</div>
+${state.buyDraft.showLinkInput ? `<input id="customLinkInput" value="${esc(state.buyDraft.customLink||"")}" placeholder="Paste a link..." style="width:100%;padding:12px;border-radius:999px;border:none;">` : `<button class="btn btn-ghost-dark btn-block" data-action="toggle-link-input">${iconSvg("plus")}</button>`}
+<p class="hint" style="text-align:right;">${esc(p.custom_note||"")}</p>
+</div>
+<div class="row-between mt16 mb16">
+<span style="font-weight:700;">Quantity</span>
+<div class="stepper"><button data-action="qty-dec">${iconSvg("minus")}</button><span>${state.buyDraft.qty}</span><button data-action="qty-inc">${iconSvg("plus")}</button></div>
+</div>
+<button class="btn btn-primary btn-block" data-action="confirm-buy">${iconSvg("cart")} Buy</button>
+</div>
+</div>`;
+}
+function categoryModalHtml(){
+if(!state.categoryModal) return "";
+const c = state.categoryModal;
+return `
+<div class="modal-overlay" data-action="close-modal-bg">
+<div class="modal-sheet" onclick="event.stopPropagation()">
+<button class="modal-close" style="color:#fff;" data-action="close-category-modal">${iconSvg("x")}</button>
+<h2 class="chunky" style="margin-top:0;">${c.id?"Edit category":"Add category"}</h2>
+<div class="field field-dark"><label>Category name</label><input id="catName" value="${esc(c.name||"")}" placeholder="e.g. Print, Keychain"></div>
+<div class="field field-dark"><label>Description</label><textarea id="catDesc" placeholder="Short description shown to shoppers">${esc(c.description||"")}</textarea></div>
+<button class="btn btn-primary btn-block" data-action="save-category" data-id="${c.id||""}">Save category</button>
+</div>
+</div>`;
+}
+function screenCheckout(){
+const draft = state.buyDraft;
+if(!draft) return `<div class="flat-bg" style="padding:40px;color:#fff;">Nothing to checkout.<div class="mt16"><button class="btn btn-ghost" data-action="back">Go back</button></div></div>`;
+const p = draft.product;
+const img = (p.images && p.images[0]) || "";
+const merch = p.price * draft.qty;
+const shipFee = state.shippingChoice === "ship" ? Number(state.settings.shipping_fee||0) : 0;
+const total = merch + shipFee;
+const addr = state.addresses.find(a=>a.is_default) || state.addresses[0];
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Checkout</h1></div>
+<div style="padding:0 20px 30px;">
+<div class="panel" style="display:flex;gap:14px;">
+<div class="blob" style="width:76px;height:76px;flex-shrink:0;${img?`background-image:url('${esc(img)}')`:""}"></div>
+<div><div style="font-weight:700;">${esc(p.name)}</div>${draft.selected?`<span class="badge">${esc(draft.selected)}</span>`:""}
+<div style="font-size:19px;font-weight:800;margin-top:4px;">${peso(p.price)} <span style="font-size:12px;font-weight:400;opacity:0.7;">x${draft.qty}</span></div></div>
+</div>
+<div class="panel">Estimated delivery \u2014 ${p.delivery_estimate?formatDate(p.delivery_estimate):"---"}</div>
+<div class="panel">
+<div style="font-weight:700;margin-bottom:10px;">Shipping Option</div>
+<div class="pill-wrap">
+<button class="pill pill-dark${state.shippingChoice==='pickup'?' active':''}" data-action="pick-shipping" data-value="pickup">Self Pick Up \u00b7 Free</button>
+<button class="pill pill-dark${state.shippingChoice==='ship'?' active':''}" data-action="pick-shipping" data-value="ship">Shipping \u00b7 ${peso(state.settings.shipping_fee)}</button>
+</div>
+</div>
+<div class="panel">
+<div style="font-weight:700;margin-bottom:10px;">Payment Details</div>
+<div class="kv-row"><span>Merchandise Subtotal</span><span>${peso(merch)}</span></div>
+<div class="kv-row"><span>Shipping Subtotal</span><span>${peso(shipFee)}</span></div>
+<div class="divider"></div>
+<div class="kv-row total"><span>Total Payment</span><span>${peso(total)}</span></div>
+<div class="mt12" style="font-weight:700;">Payment Method</div>
+<div class="kv-row"><span>Online payment</span><span>\u2713</span></div>
+<div class="kv-row"><span>GCash e-wallet</span><span>\u2713</span></div>
+<p class="hint" style="text-align:right;">Notes: Always payment first</p>
+</div>
+<button class="btn btn-ghost-dark btn-block mb16" style="border-style:dashed;" data-action="go-address-select">${addr ? `\u{1F4CD} ${esc(addr.full_name)} \u2014 ${esc(addr.city||"")}` : "+ Add Address"}</button>
+<div class="btn-row">
+<button class="btn btn-ghost-dark" data-action="cancel-checkout">Cancel</button>
+<button class="btn btn-primary" ${!addr?"disabled":""} data-action="go-payment">Payment</button>
+</div>
+</div>
+</div>`;
+}
+function screenAddressList(){
+const selectable = state.params.selectable;
+let rows = state.addresses.map(a=>`
+<div class="panel" style="cursor:${selectable?'pointer':'default'};" ${selectable?`data-action="select-address" data-id="${a.id}"`:""}>
+<div style="font-weight:800;">${esc(a.full_name)} <span style="font-weight:400;opacity:0.7;font-size:13px;">| ${esc(a.phone)}</span></div>
+<div style="font-size:13px;opacity:0.85;margin-top:4px;">${esc(a.street||"")}</div>
+<div style="font-size:13px;opacity:0.85;">${esc(a.barangay||"")}, ${esc(a.city||"")}, ${esc(a.province||"")}</div>
+<div style="font-size:13px;opacity:0.85;">${esc(a.postal_code||"")}</div>
+${a.is_default?`<span class="badge mt8" style="background:transparent;border:1px solid #fff;">DEFAULT</span>`:""}
+</div>`).join("");
+if(!state.addresses.length) rows = `<p class="empty-state" style="color:#fff;">No saved addresses yet.</p>`;
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">My Address</h1></div>
+<div style="padding:0 20px 30px;">${rows}<button class="btn btn-ghost-dark btn-block" style="border-style:dashed;" data-action="go-address-add">${iconSvg("plus")} Add Address</button></div>
+</div>`;
+}
+function screenAddressForm(){
+const noneYet = state.addresses.length === 0;
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Set up Address</h1></div>
+<div style="padding:0 20px 30px;">
+<label class="toggle mb16"><span style="font-size:13px;font-weight:700;">Set as default</span>
+<span class="toggle-track${noneYet?' on':''}" id="defaultToggle" data-action="toggle-default"><span class="toggle-thumb"></span></span>
+</label>
+<div class="panel">
+<div class="field field-dark"><label>Full Name</label><input id="adName" placeholder="Add Name"></div>
+<div class="field field-dark"><label>Phone Number</label><input id="adPhone" placeholder="Add Number" type="tel"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="field field-dark"><input id="adRegion" placeholder="Add Region"></div>
+<div class="field field-dark"><input id="adCity" placeholder="Add City"></div>
+<div class="field field-dark"><input id="adProvince" placeholder="Add Province"></div>
+<div class="field field-dark"><input id="adBarangay" placeholder="Add Barangay"></div>
+</div>
+<div class="field field-dark"><label>Postal Code</label><input id="adPostal" placeholder="Add Postal Code"></div>
+<div class="field field-dark" style="margin-bottom:0;"><label>Street Name, house number</label><input id="adStreet" placeholder="Add Street Name, House Number"></div>
+</div>
+<div class="btn-row mt16">
+<button class="btn btn-ghost-dark" data-action="back">Cancel</button>
+<button class="btn btn-primary" data-action="save-address">Submit</button>
+</div>
+</div>
+</div>`;
+}
+function screenPayment(){
+const draft = state.buyDraft;
+if(!draft) return `<div class="flat-bg" style="padding:40px;color:#fff;">Nothing to pay.</div>`;
+const merch = draft.product.price * draft.qty;
+const shipFee = state.shippingChoice==="ship" ? Number(state.settings.shipping_fee||0) : 0;
+const total = merch + shipFee;
+const hasGcash = state.settings.gcash_number || state.settings.gcash_name;
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Payment</h1></div>
+<div style="padding:0 20px 30px;">
+<p style="opacity:0.85;font-size:13px;margin-bottom:20px;">Please pay the total amount of <strong>${peso(total)}</strong> first to check out your item, thank you.</p>
+<div class="panel center-text" style="padding:26px;">
+${hasGcash ? `<div style="font-weight:800;font-size:18px;">${esc(state.settings.gcash_name||"")}</div><div style="font-size:15px;margin-top:4px;">${esc(state.settings.gcash_number||"")}</div><p class="hint" style="margin-top:10px;">Scan the shop's GCash QR or send to this number, then tap Pay.</p>` : `<p style="opacity:0.7;font-size:13px;">Admin hasn't added GCash details yet.</p>`}
+</div>
+<div class="btn-row mt20">
+<button class="btn btn-ghost-dark" data-action="back">Cancel</button>
+<button class="btn btn-primary" data-action="do-pay">Pay</button>
+</div>
+</div>
+</div>`;
+}
+function screenPurchases(){
+const role = effectiveRole();
+let rows = state.orders.slice().reverse().map(o=>`
+<div class="panel" style="display:flex;gap:12px;">
+<div class="blob" style="width:62px;height:62px;flex-shrink:0;${o.product_image?`background-image:url('${esc(o.product_image)}')`:""}"></div>
+<div style="flex:1;">
+<div style="font-weight:700;">${esc(o.product_name)}</div>
+<div style="font-size:12px;opacity:0.7;">${esc(state.settings.shop_name)} \u00b7 ${o.quantity}x</div>
+<div class="row-between mt8">
+<span style="font-size:13px;">Total: ${peso(o.total)}</span>
+${role==="admin" ? `<button class="pill pill-dark btn-sm" data-action="toggle-order-status" data-id="${o.id}">${esc(o.status)}</button>` : `<span style="font-size:12px;font-weight:700;">${esc(o.status)}</span>`}
+</div>
+</div>
+</div>`).join("");
+if(!state.orders.length) rows = `<p class="empty-state" style="color:#fff;">No purchases yet.</p>`;
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">My Purchases</h1></div>
+<div style="padding:0 20px 30px;"><div class="badge center-text" style="display:block;padding:10px 0;font-size:13px;margin-bottom:16px;">HISTORY</div>${rows}</div>
+</div>`;
+}
+function screenProfile(){
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">My Profile</h1></div>
+<div class="center-text mb20"><div style="width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,0.2);display:inline-flex;align-items:center;justify-content:center;">${iconSvg("user")}</div></div>
+<div style="padding:0 20px 30px;">
+<div class="panel">
+<div class="row-between" id="nameRow">
+<span>Name: <strong id="nameDisplay">${esc(state.profile?.name||"\u2014")}</strong></span>
+<button class="icon-btn-dark" style="border-radius:50%;width:30px;height:30px;color:#fff;border:none;" data-action="edit-name">${iconSvg("pencil")}</button>
+</div>
+<div id="nameEditWrap"></div>
+<div class="divider"></div>
+<div class="mb12">Email: ${esc(state.profile?.email||"")}</div>
+<div class="divider"></div>
+<div class="row-between" style="cursor:pointer;" data-action="go-address-plain"><span>My Address</span>${iconSvg("chevron")}</div>
+</div>
+${isAdmin() ? `
+<div class="panel row-between">
+<span style="font-weight:700;">Viewing as ${effectiveRole()==='admin'?'Admin':'Customer'}</span>
+<span class="toggle-track${state.roleView==='admin'?' on':''}" data-action="toggle-role"><span class="toggle-thumb"></span></span>
+</div>
+<button class="btn btn-ghost-dark btn-block mb16" data-action="go-admin-settings">${iconSvg("settings")} Shop Settings</button>
+` : ""}
+<button class="btn btn-ghost-dark btn-block" data-action="sign-out">${iconSvg("logout")} Sign Out</button>
+</div>
+</div>`;
+}
+function screenAdminSettings(){
+const s = state.settings;
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">Shop Settings</h1></div>
+<div style="padding:0 20px 30px;">
+<div class="field field-dark"><label>Shop name</label><input id="asName" value="${esc(s.shop_name||"")}"></div>
+<div class="field field-dark"><label>Tagline</label><input id="asTagline" value="${esc(s.tagline||"")}"></div>
+<div class="field field-dark"><label>GCash account name</label><input id="asGcashName" value="${esc(s.gcash_name||"")}" placeholder="e.g. Juan Dela Cruz"></div>
+<div class="field field-dark"><label>GCash number</label><input id="asGcashNumber" value="${esc(s.gcash_number||"")}" placeholder="09xx xxx xxxx"></div>
+<div class="field field-dark"><label>Shipping fee (\u20b1)</label><input id="asShipFee" type="number" step="0.01" value="${s.shipping_fee||0}"></div>
+<div class="field field-dark"><label>Facebook Messenger link 1</label><input id="asFb1" value="${esc((s.fb_links||[])[0]||"")}"></div>
+<div class="field field-dark"><label>Facebook Messenger link 2</label><input id="asFb2" value="${esc((s.fb_links||[])[1]||"")}"></div>
+<button class="btn btn-primary btn-block mt8" data-action="save-settings">Save settings</button>
+</div>
+</div>`;
+}
+function screenInbox(){
+const last = state.messages[state.messages.length-1];
+return `
+<div class="flat-bg" style="min-height:100vh;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button><h1 class="chunky" style="color:#fff;">HELLO!</h1><p class="sub" style="color:rgba(255,255,255,0.75);">Message inbox</p></div>
+<div style="padding:0 20px 30px;">
+${last ? `<div class="msg-row" data-action="go-chat"><div class="avatar">${iconSvg("user")}</div>
+<div style="flex:1;overflow:hidden;"><div style="font-weight:800;">${esc(state.settings.shop_name).toUpperCase()}</div>
+<div style="font-size:13px;opacity:0.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(last.message)}</div></div>
+<div style="font-size:11px;opacity:0.6;flex-shrink:0;">${formatDateShort(last.created_at)}</div></div>` : `<p class="empty-state" style="color:#fff;">No messages yet.</p>`}
+</div>
+</div>`;
+}
+function screenChat(){
+const bubbles = state.messages.map(m=>`<div class="bubble ${m.sender==='shop'?'shop':'me'}">${esc(m.message)}</div>`).join("");
+return `
+<div class="flat-bg" style="min-height:100vh;display:flex;flex-direction:column;">
+<div class="header"><button class="backbtn" style="color:#fff;" data-action="back">${iconSvg("back")}</button>
+<h1 class="chunky" style="color:#fff;font-size:24px;">${esc(state.settings.shop_name)}</h1><p class="sub" style="color:rgba(255,255,255,0.75);">${esc(state.settings.tagline||"")}</p></div>
+<div class="chat-scroll" id="chatScroll">${bubbles || '<p class="empty-state" style="color:#fff;">Say hello!</p>'}</div>
+<div class="chat-input-row"><input id="chatInput" placeholder="Message"><button class="chat-send" data-action="send-message">${iconSvg("send")}</button></div>
+</div>`;
+}
+function renderScreen(){
+switch(state.screen){
+case "landing": return screenLanding();
+case "login": return screenLogin();
+case "signup": return screenSignup();
+case "home": return screenHome();
+case "category": return screenCategory();
+case "productForm": return screenProductForm();
+case "productDetail": return screenProductDetail();
+case "checkout": return screenCheckout();
+case "addressList": return screenAddressList();
+case "addressForm": return screenAddressForm();
+case "payment": return screenPayment();
+case "purchases": return screenPurchases();
+case "profile": return screenProfile();
+case "adminSettings": return screenAdminSettings();
+case "inbox": return screenInbox();
+case "chat": return screenChat();
+default: return "<div></div>";
+}
+}
+function render(){
+const app = document.getElementById("app");
+if(state.loading){
+app.innerHTML = `<div class="flat-bg" style="min-height:100vh;display:flex;align-items:center;justify-content:center;"><div class="spinner"></div></div>`;
+return;
+}
+app.innerHTML = renderScreen() + (state.showBuyModal ? buyModalHtml() : "") + (state.categoryModal ? categoryModalHtml() : "");
+document.getElementById("app-shell").scrollTop = 0;
+if(state.screen==="chat"){ const sc=document.getElementById("chatScroll"); if(sc) sc.scrollTop = sc.scrollHeight; }
+}
+/* ================= TARGETED UI HELPERS ================= */
+function selectPillGroup(action, clickedEl){
+document.querySelectorAll(`[data-action="${action}"]`).forEach(el => el.classList.remove("active"));
+clickedEl.classList.add("active");
+}
+function captureOptionValues(){
+const inputs = document.querySelectorAll(".optval-input");
+if(!inputs.length) return;
+const values = [];
+inputs.forEach(inp => { values[Number(inp.dataset.idx)] = inp.value; });
+formDraft.optionValues = values.length ? values : [""];
+}
+function refreshOptionValuesUI(){
+const wrap = document.getElementById("optValuesWrap");
+if(!wrap) return;
+wrap.innerHTML = formDraft.optionValues.map((v,i)=>`
+<div style="display:flex;gap:8px;margin-bottom:8px;">
+<input class="optval-input" data-idx="${i}" value="${esc(v)}" placeholder="${formDraft.optionType==='size'?'e.g. Small':'e.g. Blue'}" style="flex:1;padding:11px 14px;border-radius:12px;border:none;">
+<button class="icon-btn-dark" style="border-radius:12px;width:42px;color:#fff;border:none;" data-action="remove-option-value" data-idx="${i}">${iconSvg("x")}</button>
+</div>`).join("");
+}
+function refreshImagesUI(){
+const row = document.getElementById("imagesRow");
+if(!row) return;
+const imagesHtml = formDraft.images.map((img,i)=>`<div class="thumb-wrap"><img src="${esc(img.url)}"><button class="thumb-remove" data-action="remove-image" data-idx="${i}">${iconSvg("x")}</button></div>`).join("");
+const addImgBtn = formDraft.images.length < 10 ? `<div class="thumb-add" data-action="pick-images">${iconSvg("plus")}</div>` : "";
+row.innerHTML = imagesHtml + addImgBtn;
+}
+async function handleImageFiles(files){
+const remaining = 10 - formDraft.images.length;
+const toProcess = files.slice(0, Math.max(0,remaining));
+for(const file of toProcess){
+try{
+const blob = await compressImage(file);
+formDraft.images.push({ url: URL.createObjectURL(blob), blob });
+}catch(e){ toast("Could not process an image", true); }
+}
+refreshImagesUI();
+const inp = document.getElementById("imageFileInput");
+if(inp) inp.value = "";
+}
+/* ================= DATA LOADERS ================= */
+async function loadProfile(){
+const rows = await sb.select("profiles", `id=eq.${state.session.user.id}&select=*`);
+state.profile = rows[0] || null;
+}
+async function loadPublicData(){
+try{
+state.categories = await sb.select("categories", "select=*&order=created_at.asc");
+state.products = await sb.select("products", "select=*&order=created_at.asc");
+const settingsRows = await sb.select("shop_settings", "select=*&id=eq.1");
+if(settingsRows[0]) state.settings = settingsRows[0];
+}catch(e){ toast("Could not load shop data: "+e.message, true); }
+}
+async function loadPersonalData(){
+try{
+state.addresses = await sb.select("addresses", `user_id=eq.${state.session.user.id}&select=*&order=created_at.asc`);
+const orderFilter = isAdmin() ? "select=*&order=created_at.asc" : `user_id=eq.${state.session.user.id}&select=*&order=created_at.asc`;
+state.orders = await sb.select("orders", orderFilter);
+state.messages = await sb.select("messages", `user_id=eq.${state.session.user.id}&select=*&order=created_at.asc`);
+}catch(e){ toast("Could not load your account data: "+e.message, true); }
+}
+/* ================= AUTH HANDLERS ================= */
+async function handleLogin(){
+const btn = document.querySelector('[data-action="do-login"]');
+const email = document.getElementById("loginEmail").value.trim();
+const pw = document.getElementById("loginPw").value;
+const errEl = document.getElementById("loginError");
+errEl.textContent = "";
+if(!email || !pw){ errEl.textContent = "Please enter your email and password."; return; }
+btn.disabled = true; btn.textContent = "Logging in...";
+try{
+const data = await sb.signIn(email, pw);
+state.session = data;
+storageSet("mc_refresh_token", data.refresh_token);
+await loadProfile();
+await loadPersonalData();
+resetTo("home");
+}catch(err){
+btn.disabled = false; btn.textContent = "Log in";
+errEl.textContent = /invalid/i.test(err.message) ? "Incorrect email or password." : err.message;
+}
+}
+async function handleSignup(){
+const btn = document.querySelector('[data-action="do-signup"]');
+const name = document.getElementById("suName").value.trim();
+const email = document.getElementById("suEmail").value.trim();
+const pw = document.getElementById("suPw").value;
+const pw2 = document.getElementById("suPw2").value;
+const errEl = document.getElementById("signupError");
+errEl.textContent = "";
+if(!name || !email || !pw){ errEl.textContent = "Please fill in all fields."; return; }
+if(pw.length < 6){ errEl.textContent = "Password should be at least 6 characters."; return; }
+if(pw !== pw2){ errEl.textContent = "Passwords don't match."; return; }
+btn.disabled = true; btn.textContent = "Creating account...";
+try{
+const data = await sb.signUp(email, pw, name);
+if(data.access_token){
+state.session = data;
+storageSet("mc_refresh_token", data.refresh_token);
+await loadProfile();
+await loadPersonalData();
+resetTo("home");
+toast("Welcome, "+name+"!");
+} else {
+resetTo("login");
+toast("Account created! Check your email to confirm, then log in.");
+}
+}catch(err){
+btn.disabled = false; btn.textContent = "Sign up";
+errEl.textContent = err.message;
+}
+}
+/* ================= PRODUCT / ORDER HANDLERS ================= */
+async function handleSaveProduct(editingId){
+const btn = document.querySelector('[data-action="save-product"]');
+const name = document.getElementById("pfName").value.trim();
+const price = parseFloat(document.getElementById("pfPrice").value);
+const description = document.getElementById("pfDesc").value.trim();
+const delivery = document.getElementById("pfDelivery").value;
+const note = document.getElementById("pfNote").value.trim();
+captureOptionValues();
+const optionValues = formDraft.optionValues.map(v=>v.trim()).filter(Boolean);
+if(!name || !price || !formDraft.categoryId){
+toast("Please fill in product name, price, and category.", true);
+return;
+}
+btn.disabled = true; btn.textContent = "Saving...";
+try{
+const finalImages = [];
+for(const img of formDraft.images){
+if(img.blob){
+const path = `${state.session.user.id}/${Date.now()}-${uid()}.jpg`;
+finalImages.push(await sb.upload(path, img.blob));
+} else { finalImages.push(img.url); }
+}
+const payload = {
+category_id: formDraft.categoryId, name, price, description,
+images: finalImages, delivery_estimate: delivery || null,
+option_type: formDraft.optionType, option_values: optionValues,
+custom_note: note || "Notes: Customize product have additional fees",
+};
+let saved;
+if(editingId){
+const rows = await sb.update("products", `id=eq.${editingId}`, payload);
+saved = rows[0];
+state.products = state.products.map(p=>p.id===editingId?saved:p);
+} else {
+const rows = await sb.insert("products", payload);
+saved = rows[0];
+state.products.push(saved);
+}
+formDraft = {};
+toast("Product saved!");
+back();
+}catch(err){
+btn.disabled = false; btn.textContent = "Save product";
+toast(err.message || "Could not save product", true);
+}
+}
+async function handleDoPay(){
+const btn = document.querySelector('[data-action="do-pay"]');
+const draft = state.buyDraft;
+if(!draft){ toast("Nothing to pay.", true); return; }
+const addr = state.addresses.find(a=>a.is_default) || state.addresses[0];
+if(!addr){ toast("Please add a delivery address first.", true); return; }
+const merch = draft.product.price * draft.qty;
+const shipFee = state.shippingChoice==='ship' ? Number(state.settings.shipping_fee||0) : 0;
+const total = merch + shipFee;
+btn.disabled = true; btn.textContent = "Processing...";
+try{
+const payload = {
+user_id: state.session.user.id, product_id: draft.product.id, product_name: draft.product.name,
+product_image: (draft.product.images&&draft.product.images[0])||null, variation: draft.selected||null,
+quantity: draft.qty, unit_price: draft.product.price, shipping_option: state.shippingChoice,
+shipping_fee: shipFee, merchandise_subtotal: merch, total: total, status: "To Deliver",
+custom_link: draft.customLink || null,
+};
+const orderRows = await sb.insert("orders", payload);
+state.orders.push(orderRows[0]);
+const deliveryText = draft.product.delivery_estimate ? formatDate(draft.product.delivery_estimate) : "the estimated date";
+const msgText = `Your order is currently in the preparation stage, and the seller is expected to ship it by the latest ship date of ${deliveryText}. We will remind the seller to ship it as soon as possible. Thank you for your patience.`;
+const msgRows = await sb.insert("messages", { user_id: state.session.user.id, sender:"shop", message: msgText });
+state.messages.push(msgRows[0]);
+state.buyDraft = null; state.showBuyModal = false;
+toast("Order placed!");
+resetTo("home");
+nav("purchases");
+}catch(err){
+btn.disabled = false; btn.textContent = "Pay";
+toast(err.message || "Payment failed", true);
+}
+}
+/* ================= DELEGATED EVENTS ================= */
+document.addEventListener("change", async (e) => {
+if(e.target && e.target.id === "imageFileInput"){
+await handleImageFiles(Array.from(e.target.files||[]));
+}
+});
+document.addEventListener("click", async (e) => {
+const el = e.target.closest("[data-action]");
+if(!el) return;
+const action = el.dataset.action;
+const id = el.dataset.id;
+const linkInput = document.getElementById("customLinkInput");
+if(linkInput && state.buyDraft) state.buyDraft.customLink = linkInput.value;
+try{
+switch(action){
+case "enter": state.session ? resetTo("home") : nav("login"); break;
+case "goto-login": nav("login"); break;
+case "goto-signup": nav("signup"); break;
+case "back": back(); break;
+case "toggle-pw": {
+const target = document.getElementById(el.dataset.target);
+const isPw = target.type === "password";
+target.type = isPw ? "text" : "password";
+el.innerHTML = isPw ? iconSvg("eyeOff") : iconSvg("eye");
+break;
+}
+case "skip-google": toast("Google sign-in is coming soon!"); break;
+case "do-login": await handleLogin(); break;
+case "do-signup": await handleSignup(); break;
+case "go-profile": nav("profile"); break;
+case "go-purchases": nav("purchases"); break;
+case "go-inbox": nav("inbox"); break;
+case "go-chat": nav("chat"); break;
+case "go-admin-settings": nav("adminSettings"); break;
+case "open-category": nav("category", { categoryId:id }); break;
+case "open-product": carouselIdx = 0; nav("productDetail", { productId:id }); break;
+case "add-category": state.categoryModal = {}; render(); break;
+case "edit-category": {
+const c = state.categories.find(x=>x.id===id);
+state.categoryModal = { ...c };
+render();
+break;
+}
+case "delete-category": {
+if(!confirm("Delete this category? Products inside it will be deleted too.")) break;
+await sb.remove("categories", `id=eq.${id}`);
+state.categories = state.categories.filter(c=>c.id!==id);
+state.products = state.products.filter(p=>p.category_id!==id);
+render();
+toast("Category deleted");
+break;
+}
+case "save-category": {
+const name = document.getElementById("catName").value.trim();
+const description = document.getElementById("catDesc").value.trim();
+if(!name){ toast("Please enter a category name.", true); break; }
+const editId = el.dataset.id;
+el.disabled = true; el.textContent = "Saving...";
+try{
+let saved;
+if(editId){
+const rows = await sb.update("categories", `id=eq.${editId}`, { name, description });
+saved = rows[0];
+state.categories = state.categories.map(c=>c.id===editId?saved:c);
+} else {
+const rows = await sb.insert("categories", { name, description });
+saved = rows[0];
+state.categories.push(saved);
+}
+state.categoryModal = null;
+render();
+toast("Category saved!");
+}catch(err){
+el.disabled = false; el.textContent = "Save category";
+toast(err.message, true);
+}
+break;
+}
+case "close-modal-bg":
+if(state.showBuyModal) state.showBuyModal = false;
+if(state.categoryModal) state.categoryModal = null;
+render();
+break;
+case "close-modal": state.showBuyModal = false; render(); break;
+case "close-category-modal": state.categoryModal = null; render(); break;
+case "add-product": formDraft = {}; nav("productForm", { categoryId: el.dataset.category }); break;
+case "edit-product": formDraft = {}; nav("productForm", { productId:id }); break;
+case "delete-product": {
+if(!confirm("Delete this product?")) break;
+await sb.remove("products", `id=eq.${id}`);
+state.products = state.products.filter(p=>p.id!==id);
+render();
+toast("Product deleted");
+break;
+}
+case "pick-category": formDraft.categoryId = id; selectPillGroup("pick-category", el); break;
+case "pick-option-type":
+captureOptionValues();
+formDraft.optionType = el.dataset.type;
+selectPillGroup("pick-option-type", el);
+refreshOptionValuesUI();
+break;
+case "add-option-value":
+captureOptionValues();
+formDraft.optionValues.push("");
+refreshOptionValuesUI();
+break;
+case "remove-option-value": {
+captureOptionValues();
+formDraft.optionValues.splice(Number(el.dataset.idx),1);
+if(!formDraft.optionValues.length) formDraft.optionValues.push("");
+refreshOptionValuesUI();
+break;
+}
+case "pick-images": document.getElementById("imageFileInput").click(); break;
+case "remove-image": formDraft.images.splice(Number(el.dataset.idx),1); refreshImagesUI(); break;
+case "save-product": await handleSaveProduct(el.dataset.editing); break;
+case "carousel-prev": carouselIdx = Math.max(0, carouselIdx-1); render(); break;
+case "carousel-next": {
+const p = state.products.find(x=>x.id===state.params.productId);
+carouselIdx = Math.min(((p&&p.images)||[]).length-1, carouselIdx+1);
+render();
+break;
+}
+case "open-buy": {
+const p = state.products.find(x=>x.id===id);
+state.buyDraft = { product:p, selected:(p.option_values&&p.option_values[0])||null, qty:1, customLink:"", showLinkInput:false };
+state.showBuyModal = true;
+render();
+break;
+}
+case "pick-buy-option": state.buyDraft.selected = el.dataset.value; selectPillGroup("pick-buy-option", el); break;
+case "toggle-link-input": state.buyDraft.showLinkInput = true; render(); break;
+case "qty-inc": state.buyDraft.qty++; el.parentElement.querySelector("span").textContent = state.buyDraft.qty; break;
+case "qty-dec": state.buyDraft.qty = Math.max(1, state.buyDraft.qty-1); el.parentElement.querySelector("span").textContent = state.buyDraft.qty; break;
+case "confirm-buy":
+if((state.buyDraft.product.option_values||[]).length && !state.buyDraft.selected){ toast("Please choose an option first.", true); break; }
+state.showBuyModal = false; state.shippingChoice = "pickup";
+nav("checkout");
+break;
+case "cancel-checkout": state.showBuyModal = true; back(); break;
+case "pick-shipping": state.shippingChoice = el.dataset.value; render(); break;
+case "go-address-select": nav("addressList", { selectable:true }); break;
+case "go-address-add": nav("addressForm"); break;
+case "go-address-plain": nav("addressList", { selectable:false }); break;
+case "select-address": {
+await sb.update("addresses", `user_id=eq.${state.session.user.id}`, { is_default:false });
+await sb.update("addresses", `id=eq.${id}`, { is_default:true });
+state.addresses = state.addresses.map(a=>({ ...a, is_default: a.id===id }));
+back();
+break;
+}
+case "toggle-default": document.getElementById("defaultToggle").classList.toggle("on"); break;
+case "save-address": {
+const full_name = document.getElementById("adName").value.trim();
+const phone = document.getElementById("adPhone").value.trim();
+const region = document.getElementById("adRegion").value.trim();
+const city = document.getElementById("adCity").value.trim();
+const province = document.getElementById("adProvince").value.trim();
+const barangay = document.getElementById("adBarangay").value.trim();
+const postal_code = document.getElementById("adPostal").value.trim();
+const street = document.getElementById("adStreet").value.trim();
+const isDefault = document.getElementById("defaultToggle").classList.contains("on");
+if(!full_name || !phone){ toast("Please enter a name and phone number.", true); break; }
+el.disabled = true; el.textContent = "Saving...";
+try{
+if(isDefault) await sb.update("addresses", `user_id=eq.${state.session.user.id}`, { is_default:false });
+const rows = await sb.insert("addresses", { user_id: state.session.user.id, full_name, phone, region, city, province, barangay, postal_code, street, is_default:isDefault });
+if(isDefault) state.addresses = state.addresses.map(a=>({...a,is_default:false}));
+state.addresses.push(rows[0]);
+toast("Address saved!");
+back();
+}catch(err){
+el.disabled = false; el.textContent = "Submit";
+toast(err.message, true);
+}
+break;
+}
+case "go-payment": nav("payment"); break;
+case "do-pay": await handleDoPay(); break;
+case "toggle-order-status": {
+const o = state.orders.find(x=>x.id===id);
+const newStatus = o.status === "Delivered" ? "To Deliver" : "Delivered";
+await sb.update("orders", `id=eq.${id}`, { status:newStatus });
+o.status = newStatus;
+render();
+break;
+}
+case "edit-name": {
+const wrap = document.getElementById("nameEditWrap");
+wrap.innerHTML = `<div style="display:flex;gap:8px;margin-top:10px;">
+<input id="nameEditInput" value="${esc(state.profile?.name||"")}" style="flex:1;padding:10px 14px;border-radius:12px;border:none;">
+<button class="btn btn-primary btn-sm" data-action="save-name">Save</button></div>`;
+document.getElementById("nameEditInput").focus();
+break;
+}
+case "save-name": {
+const val = document.getElementById("nameEditInput").value.trim();
+if(!val) break;
+await sb.update("profiles", `id=eq.${state.session.user.id}`, { name: val });
+state.profile.name = val;
+document.getElementById("nameEditWrap").innerHTML = "";
+document.getElementById("nameDisplay").textContent = val;
+break;
+}
+case "toggle-role": state.roleView = state.roleView==="admin" ? "customer" : "admin"; render(); break;
+case "save-settings": {
+const shop_name = document.getElementById("asName").value.trim();
+const tagline = document.getElementById("asTagline").value.trim();
+const gcash_name = document.getElementById("asGcashName").value.trim();
+const gcash_number = document.getElementById("asGcashNumber").value.trim();
+const shipping_fee = parseFloat(document.getElementById("asShipFee").value) || 0;
+const fb1 = document.getElementById("asFb1").value.trim();
+const fb2 = document.getElementById("asFb2").value.trim();
+el.disabled = true; el.textContent = "Saving...";
+try{
+const rows = await sb.update("shop_settings", "id=eq.1", { shop_name, tagline, gcash_name, gcash_number, shipping_fee, fb_links:[fb1,fb2].filter(Boolean) });
+state.settings = rows[0];
+toast("Settings saved!");
+back();
+}catch(err){
+el.disabled = false; el.textContent = "Save settings";
+toast(err.message, true);
+}
+break;
+}
+case "sign-out":
+await sb.signOut();
+storageRemove("mc_refresh_token");
+state.session = null; state.profile = null; state.addresses=[]; state.orders=[]; state.messages=[];
+resetTo("landing");
+break;
+case "send-message": {
+const input = document.getElementById("chatInput");
+const text = input.value.trim();
+if(!text) break;
+input.value = "";
+const rows = await sb.insert("messages", { user_id: state.session.user.id, sender:"customer", message:text });
+state.messages.push(rows[0]);
+render();
+break;
+}
+default: break;
+}
+}catch(err){
+toast(err.message || "Something went wrong", true);
+}
+});
+/* ================= INIT ================= */
+async function init(){
+try{
+const savedRefresh = storageGet("mc_refresh_token");
+if(savedRefresh){
+try{
+const data = await sb.refresh(savedRefresh);
+if(data.access_token){
+state.session = data;
+storageSet("mc_refresh_token", data.refresh_token);
+await loadProfile();
+}
+}catch(e){ storageRemove("mc_refresh_token"); }
+}
+await loadPublicData();
+if(state.session){ await loadPersonalData(); }
+}catch(e){ console.error(e); }
+state.loading = false;
+render();
+}
+init();
+</script>
+</body>
+</html>
